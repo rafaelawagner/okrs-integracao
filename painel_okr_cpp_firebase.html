@@ -720,6 +720,7 @@ function startListeners(){
   const qP=query(collection(db,"planosDeAcao"),orderBy("prioridade","asc"));
   unsubs.push(onSnapshot(qP,snap=>{
     allPlanos=snap.docs.map(d=>({id:d.id,...d.data()}));
+    // Only render if eixos are ready, otherwise renderAllCards will retry
     renderAllCards(); updateDash(); checkAndShowSeedBanner();
     setSyncStatus("ok","Sincronizado");
     $("tb-status").textContent="✅ Firestore em tempo real";
@@ -734,6 +735,8 @@ function startListeners(){
     allEixos=snap.docs.map(d=>({id:d.id,...d.data()}));
     renderEixoManager(); renderEixoFilterBadges(); renderEixoProgressBars();
     populateModalEixoSelect();
+    // Re-render cards now that eixos are available
+    if(allPlanos.length>0){ renderAllCards(); updateDash(); checkAndShowSeedBanner(); }
   },e=>handleErr(e,"carregar eixos")));
 
   // Histórico
@@ -938,6 +941,11 @@ function hexToBg(hex){
 
 // ── Render Cards ──────────────────────────────────────────────────────────────
 function renderAllCards(){
+  // Wait until eixos are loaded before rendering cards
+  if(allEixos.length===0){
+    setTimeout(renderAllCards, 300);
+    return;
+  }
   $("tab-cards").innerHTML=""; $("gantt-rows").innerHTML="";
   allEixos.forEach(e=>{
     // match if eixo is primary OR in eixos array
