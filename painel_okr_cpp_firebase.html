@@ -1338,40 +1338,6 @@ window.closeActionModal=()=>{$("modal-overlay").classList.remove("open");resetAc
 window.toggleNat=el=>el.classList.toggle("sel");
 window.selFColor=el=>{document.querySelectorAll("#f-swatches .cswatch").forEach(s=>s.classList.remove("sel"));el.classList.add("sel");};
 // Render eixo chips in modal
-function renderModalEixoChips(selectedIds=[]){
-  const list=document.getElementById("f-eixo-list"); if(!list)return;
-  list.innerHTML="";
-  allEixos.forEach(e=>{
-    const chip=document.createElement("div");
-    const isSel=selectedIds.includes(e.id);
-    chip.style.cssText=`display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid ${isSel?e.cor:'var(--bd)'};background:${isSel?hexToBg(e.cor):'var(--bg)'};color:${isSel?e.cor:'var(--mt)'};transition:all .15s;user-select:none`;
-    chip.dataset.eixoId=e.id;
-    chip.innerHTML=`<span style="width:7px;height:7px;border-radius:50%;background:${e.cor};flex-shrink:0"></span>${e.nome}`;
-    chip.onclick=()=>{
-      const cur=getSelectedModalEixos();
-      if(cur.includes(e.id)){
-        if(cur.length===1)return; // keep at least one
-        renderModalEixoChips(cur.filter(x=>x!==e.id));
-      } else {
-        renderModalEixoChips([...cur,e.id]);
-      }
-      // auto-set border color to first selected eixo
-      const first=allEixos.find(x=>getSelectedModalEixos()[0]===x.id);
-      if(first){
-        document.querySelectorAll("#f-swatches .cswatch").forEach(s=>s.classList.remove("sel"));
-        const m=document.querySelector(`#f-swatches .cswatch[data-color="${first.cor}"]`);
-        if(m)m.classList.add("sel");
-      }
-    };
-    list.appendChild(chip);
-  });
-}
-function getSelectedModalEixos(){
-  return Array.from(document.querySelectorAll("#f-eixo-list [data-eixo-id]"))
-    .filter(c=>c.style.borderColor!=='var(--bd)'&&!c.style.borderColor.includes('rgb(216'))
-    .map(c=>c.dataset.eixoId);
-}
-// Smarter: track selection state via data attribute
 function getSelectedModalEixos(){
   return Array.from(document.querySelectorAll("#f-eixo-list [data-eixo-id]"))
     .filter(c=>c.dataset.selected==="true")
