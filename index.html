@@ -561,6 +561,15 @@ body.presenting .sh{display:none}
         <label class="form-label">Responsável</label>
         <input type="text" class="form-input" id="f-resp" placeholder="Ex: Dir. Ensino HPP + Coord. FPP">
       </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">👁 Observador <span style="font-weight:400;font-size:10px;color:var(--mt)">(cobra e supervisiona esta ação)</span></label>
+        <select class="form-select" id="f-observador" onchange="onObservadorSelectChange()" style="width:100%">
+          <option value="">— Selecionar —</option>
+        </select>
+        <div id="f-observador-novo-wrap" style="display:none;margin-top:6px">
+          <input type="text" class="form-input" id="f-observador-novo" placeholder="Digite o nome do novo observador" style="width:100%">
+        </div>
+      </div>
       <div class="form-group">
         <label class="form-label">Prioridade (nº)</label>
         <input type="number" class="form-input" id="f-prio" min="1" placeholder="Auto">
@@ -693,6 +702,14 @@ onAuthStateChanged(auth,user=>{
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let allPlanos=[], allEixos=[], allHistorico=[];
+const OBSERVADORES_PADRAO=["Bruno","Rafaela","Liana"];
+let allObservadores=[...OBSERVADORES_PADRAO];
+function collectObservadores(){
+  const fromActions=(allPlanos||[]).map(p=>p.observador).filter(Boolean);
+  const merged=[...new Set([...OBSERVADORES_PADRAO,...fromActions])];
+  allObservadores=merged;
+  return merged;
+}
 const unsubs=[];
 function unsubAll(){unsubs.forEach(u=>u());unsubs.length=0;}
 
@@ -1017,6 +1034,7 @@ function renderCard(p,e){
       <div class="card-meta">
         <div><div class="meta-label">Prazo</div><span class="prazo-tag" style="background:${pbg};color:${pc}">${pl}</span></div>
         <div><div class="meta-label">Período</div><div class="meta-value">${p.inicio||"—"} → ${p.fim||"—"}</div></div>
+        ${p.observador?`<div><div class="meta-label">👁 Observador</div><div class="meta-value">${p.observador}</div></div>`:""}
       </div>
     </div>
     <div class="krs-section">
@@ -1303,6 +1321,7 @@ window.openActionModal=eixoId=>{
   $("modal-sub").textContent="Preencha os campos — será salvo automaticamente no Firestore";
   $("btn-save-txt").textContent="✓ Salvar no Firestore";
   resetActionModal();
+  renderObservadorOptions("");
   if(eixoId){$("f-eixo").value=eixoId;onModalEixoChange();}
   $("modal-overlay").classList.add("open");
   setTimeout(()=>$("f-title").focus(),200);
@@ -1324,6 +1343,7 @@ window.openEditActionModal=async id=>{
   $("f-ini").value=p.inicio||"Jul/2026";
   $("f-fim").value=p.fim||"Dez/2026";
   $("f-resp").value=p.responsavel||"";
+  renderObservadorOptions(p.observador||"");
   $("f-prio").value=p.prioridade||"";
   $("f-kr1t").value=p.kr1Titulo||"";
   $("f-kr1d").value=p.kr1Meta||"";
@@ -1380,6 +1400,32 @@ function renderModalEixoChips(selectedIds=[]){
 }
 window.onModalEixoChange=()=>{}; // kept for compatibility
 
+function renderObservadorOptions(selected=""){
+  const sel=$("f-observador"); if(!sel)return;
+  collectObservadores();
+  sel.innerHTML='<option value="">— Selecionar —</option>'
+    +allObservadores.map(o=>`<option value="${o}">${o}</option>`).join("")
+    +'<option value="__novo__">+ Outro (adicionar novo)</option>';
+  sel.value=selected&&allObservadores.includes(selected)?selected:(selected?"__novo__":"");
+  const novoWrap=$("f-observador-novo-wrap"), novoInp=$("f-observador-novo");
+  if(selected&&!allObservadores.includes(selected)){
+    novoWrap.style.display="block"; novoInp.value=selected;
+  }else{
+    novoWrap.style.display="none"; novoInp.value="";
+  }
+}
+window.onObservadorSelectChange=()=>{
+  const v=$("f-observador").value;
+  const novoWrap=$("f-observador-novo-wrap");
+  novoWrap.style.display=v==="__novo__"?"block":"none";
+  if(v!=="__novo__")$("f-observador-novo").value="";
+};
+function getObservadorValue(){
+  const sel=$("f-observador").value;
+  if(sel==="__novo__")return $("f-observador-novo").value.trim();
+  return sel;
+}
+
 function resetActionModal(){
   ["f-title","f-obj","f-resp","f-kr1t","f-kr1d","f-kr2t","f-kr2d"].forEach(id=>{const e=$(id);if(e)e.value="";});
   $("f-prio").value=""; $("f-qw").checked=false;
@@ -1406,6 +1452,7 @@ window.submitActionModal=async()=>{
     borderColor:swatch?.dataset.color||eixo?.cor||"#003087",
     inicio:$("f-ini").value,fim:$("f-fim").value,
     responsavel:$("f-resp").value.trim()||"A definir",
+    observador:getObservadorValue()||"",
     prioridade:parseInt($("f-prio").value)||allPlanos.length+1,
     kr1Titulo:$("f-kr1t").value.trim()||"Resultado-chave 1",
     kr1Meta:$("f-kr1d").value.trim()||$("f-fim").value,
