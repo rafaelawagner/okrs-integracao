@@ -153,8 +153,10 @@ header{background:var(--azul);color:#fff;overflow:hidden}
 .meta-value{font-size:11px;font-weight:600;text-align:right}
 .prazo-tag{display:inline-flex;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .qw-star{position:absolute;top:-1px;right:34px;background:var(--azul);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:0 0 6px 6px;letter-spacing:.05em}
-.card-del-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:13px;opacity:.45;transition:opacity .15s;padding:2px 4px;border-radius:4px}
-.card-del-btn:hover{opacity:1;background:#FEE2E2}
+.card-action-btn{background:none;border:1px solid var(--bd);cursor:pointer;font-size:11px;color:var(--mt);padding:2px 7px;border-radius:5px;white-space:nowrap}
+.card-action-btn:hover{background:#F0F4FA}
+.card-del-btn{color:#E53935;border-color:#F5C6C6}
+.card-del-btn:hover{background:#FEE2E2;border-color:#E53935}
 .saving-ind{position:absolute;top:8px;right:34px;font-size:10px;color:var(--mt);font-weight:600;display:none;animation:fadeIn .2s}
 .saving-ind.show{display:block}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -1042,12 +1044,12 @@ function renderCard(p,e){
   div.innerHTML=`
     ${p.quickWin?'<div class="qw-star">⚡ Quick Win</div>':""}
     <span class="saving-ind" id="sav-${p.id}">💾 salvando...</span>
-    <button class="card-del-btn" onclick="deleteAction('${p.id}')" title="Excluir ação">🗑</button>
     <div class="card-header-row">
       <div class="priority-num" style="background:${hexToBg(eixo.cor)};color:${eixo.cor}">${prioNum}</div>
       <div>
         <div class="badge-row">${badgesHTML}
-          <button style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:11px;color:var(--mt);padding:1px 4px;border-radius:4px" onclick="openEditActionModal('${p.id}')" title="Editar todos os campos">✏️</button>
+          <button class="card-action-btn" style="margin-left:auto" onclick="openEditActionModal('${p.id}')" title="Editar todos os campos">✏️ Editar</button>
+          <button class="card-action-btn card-del-btn" onclick="deleteAction('${p.id}')" title="Excluir ação">🗑 Excluir</button>
         </div>
         <div class="card-title" contenteditable="true" spellcheck="false" data-ph="Título da ação" onblur="saveField('${p.id}','titulo',this.innerText,'editar_titulo')">${p.titulo||""}</div>
         <div class="card-objetivo" contenteditable="true" spellcheck="false" data-ph="Descrição" onblur="saveField('${p.id}','objetivo',this.innerText,'editar_objetivo')">${p.objetivo||""}</div>
