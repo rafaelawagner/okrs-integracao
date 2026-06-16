@@ -400,6 +400,12 @@ body.presenting .sh{display:none}
 
 <!-- FILTERS -->
 <div class="ctrl" id="tab-ctrl">
+  <div style="min-width:220px">
+    <div class="lgt">Buscar</div>
+    <div class="lgi">
+      <input type="text" id="search-input" class="form-input" placeholder="Título, responsável, observador..." oninput="onSearchInput()" style="width:100%;min-width:200px">
+    </div>
+  </div>
   <div>
     <div class="lgt">Eixo</div>
     <div class="lgi" id="eixo-filter-badges"></div>
@@ -586,6 +592,20 @@ body.presenting .sh{display:none}
       <button class="btn-cancel" onclick="closeActionModal()">Cancelar</button>
       <button class="btn-save" id="btn-save" onclick="submitActionModal()">
         <span id="btn-save-txt">✓ Salvar no Firestore</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-overlay" onclick="if(event.target===this)closeConfirmModal()">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title" id="confirm-title" style="color:#E53935">🗑 Excluir ação</div>
+    <div class="modal-sub" id="confirm-sub">Esta ação será excluída permanentemente, junto com todos os comentários associados. Esta operação não pode ser desfeita.</div>
+    <div style="background:#FAEAEA;border-radius:8px;padding:10px 12px;margin:12px 0;font-size:13px;color:#9b2d2d" id="confirm-action-name"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeConfirmModal()">Cancelar</button>
+      <button class="btn-save" id="confirm-btn" style="background:#E53935" onclick="confirmDeleteAction()">
+        <span>🗑 Excluir permanentemente</span>
       </button>
     </div>
   </div>
@@ -1017,6 +1037,7 @@ function renderCard(p,e){
   div.dataset.eixo=p.eixo||"";
   div.dataset.eixos=cardEixoIds.join(",");
   div.dataset.prazo=p.prazo||""; div.dataset.natureza=nats.join(" ");
+  div.dataset.search=[p.titulo,p.objetivo,p.responsavel,p.observador].filter(Boolean).join(" ").toLowerCase();
   div.style.borderLeftColor=border;
   div.innerHTML=`
     ${p.quickWin?'<div class="qw-star">⚡ Quick Win</div>':""}
@@ -1157,8 +1178,17 @@ window.delComment=async id=>{
 };
 
 // ── Delete action ─────────────────────────────────────────────────────────────
-window.deleteAction=async id=>{
-  if(!confirm("Excluir esta ação permanentemente?"))return;
+let pendingDeleteId=null;
+window.deleteAction=id=>{
+  pendingDeleteId=id;
+  const p=allPlanos.find(x=>x.id===id);
+  $("confirm-action-name").textContent=p?.titulo?`"${p.titulo}"`:"";
+  $("confirm-overlay").classList.add("open");
+};
+window.closeConfirmModal=()=>{$("confirm-overlay").classList.remove("open");pendingDeleteId=null;};
+window.confirmDeleteAction=async()=>{
+  const id=pendingDeleteId; if(!id)return;
+  closeConfirmModal();
   try{
     setLoading(true,"Excluindo...");
     const batch=writeBatch(db);
@@ -1269,7 +1299,7 @@ function renderHistorico(){
 }
 
 // ── Filters ───────────────────────────────────────────────────────────────────
-let fEv=null,fPv=null,fSv=null;
+let fEv=null,fPv=null,fSv=null,searchTerm="";
 window.fE=(el,v)=>{fEv=fEv===v?null:v;document.querySelectorAll(".lb").forEach(b=>b.classList.remove("act"));if(fEv)el.classList.add("act");applyFilters();};
 window.fP=(el,v)=>{fPv=fPv===v?null:v;if(fPv)el.classList.add("act");else el.classList.remove("act");applyFilters();};
 window.fS=(el,v)=>{fSv=fSv===v?null:v;if(fSv)el.classList.add("act");else el.classList.remove("act");applyFilters();};
@@ -1282,13 +1312,18 @@ function applyFilters(){
     }
     if(fPv&&c.dataset.prazo!==fPv)show=false;
     if(fSv&&(c.querySelector(".status-select")?.value||"nao_iniciado")!==fSv)show=false;
+    if(searchTerm&&!(c.dataset.search||"").includes(searchTerm))show=false;
     c.classList.toggle("hidden",!show);
   });
   document.querySelectorAll(".eixo-section").forEach(s=>{
     s.style.display=s.querySelectorAll(".action-card:not(.hidden)").length>0?"":"none";
   });
 }
-window.showAll=()=>{document.querySelectorAll(".action-card").forEach(c=>c.classList.remove("hidden"));document.querySelectorAll(".lb").forEach(b=>b.classList.remove("act"));fEv=null;fPv=null;fSv=null;document.querySelectorAll(".eixo-section").forEach(s=>s.style.display="");};
+window.onSearchInput=()=>{
+  searchTerm=($("search-input").value||"").trim().toLowerCase();
+  applyFilters();
+};
+window.showAll=()=>{document.querySelectorAll(".action-card").forEach(c=>c.classList.remove("hidden"));document.querySelectorAll(".lb").forEach(b=>b.classList.remove("act"));fEv=null;fPv=null;fSv=null;searchTerm="";const si=$("search-input");if(si)si.value="";document.querySelectorAll(".eixo-section").forEach(s=>s.style.display="");};
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 window.switchTab=(t,el)=>{
