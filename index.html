@@ -2162,13 +2162,11 @@ window.exportExcel=()=>{
     row.map(cell=>{
       const s=String(cell==null?"":cell);
       // Quote cells that contain comma, newline or quote
-      if(s.includes(",")||s.includes("
-")||s.includes('"'))
+      if(s.includes(",")||s.includes("\n")||s.includes('"'))
         return '"'+s.replace(/"/g,'""')+'"';
       return s;
     }).join(",")
-  ).join("
-");
+  ).join("\n");
 
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");
