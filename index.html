@@ -1150,7 +1150,8 @@ window.saveStatus=async sel=>{
 // ── Comments ──────────────────────────────────────────────────────────────────
 function loadComments(pid){
   if(commentUnsubs[pid])return;
-  const q=query(collection(db,"comentarios"),where("planoId","==",pid),orderBy("createdAt","asc"),limit(50));
+  // Simple query — no orderBy to avoid needing composite index
+  const q=query(collection(db,"comentarios"),where("planoId","==",pid),limit(50));
   commentUnsubs[pid]=onSnapshot(q,snap=>{
     // retry if container not yet in DOM
     const c=document.getElementById(pid+"-log");
@@ -1160,7 +1161,13 @@ function loadComments(pid){
       c.innerHTML='<div class="log-empty">Nenhuma atualização ainda.</div>';
       return;
     }
-    c.innerHTML=snap.docs.map(d=>{
+    // sort by createdAt in JS — oldest first
+    const docs=[...snap.docs].sort((a,b)=>{
+      const ta=a.data().createdAt?.toMillis?.()||0;
+      const tb=b.data().createdAt?.toMillis?.()||0;
+      return ta-tb;
+    });
+    c.innerHTML=docs.map(d=>{
       const x=d.data();
       const isAuthor=x.autorUid===uid;
       const edited=x.editado?'<span style="font-size:9px;color:var(--mt);font-style:italic"> (editado)</span>':"";      return `
@@ -1192,7 +1199,9 @@ function loadComments(pid){
     // scroll to bottom to show latest
     c.scrollTop=c.scrollHeight;
   }, err=>{
-    console.warn("Comments listener error:", err.message);
+    console.error("Comentários — erro Firestore:", err.code, err.message);
+    const c=document.getElementById(pid+"-log");
+    if(c) c.innerHTML='<div class="log-empty" style="color:var(--err)">Erro ao carregar atualizações. Verifique as regras do Firestore.</div>';
   });
 }
 window.addComment=async pid=>{
