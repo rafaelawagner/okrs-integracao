@@ -609,12 +609,12 @@ body.presenting .sh{display:none}
       </div>
     </div>
     <div class="fsec">🎯 Resultados-Chave</div>
-    <div class="form-grid">
-      <div class="form-group"><label class="form-label">KR 1 — Descrição</label><input type="text" class="form-input" id="f-kr1t" placeholder="O que será entregue ou medido?"></div>
-      <div class="form-group"><label class="form-label">KR 1 — Meta</label><input type="text" class="form-input" id="f-kr1d" placeholder="Ex: Jun/2027"></div>
-      <div class="form-group"><label class="form-label">KR 2 — Descrição</label><input type="text" class="form-input" id="f-kr2t" placeholder="Segundo resultado-chave"></div>
-      <div class="form-group"><label class="form-label">KR 2 — Meta</label><input type="text" class="form-input" id="f-kr2d" placeholder="Ex: Dez/2027"></div>
-    </div>
+    <div id="modal-krs-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px"></div>
+    <button type="button" onclick="addModalKR()" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--azul);background:transparent;border:1.5px dashed var(--bd);border-radius:7px;padding:6px 14px;cursor:pointer;transition:all .15s;margin-bottom:4px"
+      onmouseover="this.style.borderColor='var(--azul)';this.style.background='#EEF2FB'"
+      onmouseout="this.style.borderColor='var(--bd)';this.style.background='transparent'">
+      ＋ Adicionar KR
+    </button>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeActionModal()">Cancelar</button>
       <button class="btn-save" id="btn-save" onclick="submitActionModal()">
@@ -1457,10 +1457,9 @@ window.openEditActionModal=async id=>{
   $("f-fim").value=p.fim||"Dez/2026";
   $("f-resp").value=p.responsavel||"";
   $("f-prio").value=p.prioridade||"";
-  $("f-kr1t").value=p.kr1Titulo||"";
-  $("f-kr1d").value=p.kr1Meta||"";
-  $("f-kr2t").value=p.kr2Titulo||"";
-  $("f-kr2d").value=p.kr2Meta||"";
+  // Load all KRs into dynamic modal list
+  const editKRs=getKRsFromPlano(p);
+  renderModalKRs(editKRs);
   $("f-qw").checked=!!p.quickWin;
   // nats
   document.querySelectorAll(".nat-opt").forEach(o=>o.classList.toggle("sel",(p.natureza||[]).includes(o.dataset.nat)));
@@ -1515,6 +1514,7 @@ window.onModalEixoChange=()=>{}; // kept for compatibility
 function resetActionModal(){
   ["f-title","f-obj","f-resp","f-kr1t","f-kr1d","f-kr2t","f-kr2d"].forEach(id=>{const e=$(id);if(e)e.value="";});
   $("f-prio").value=""; $("f-qw").checked=false;
+  renderModalKRs([{num:1,titulo:"",meta:"",progress:0},{num:2,titulo:"",meta:"",progress:0}]);
   $("f-prazo").value="medio"; $("f-ini").value="Jul/2026"; $("f-fim").value="Dez/2026";
   renderModalEixoChips([allEixos[0]?.id].filter(Boolean));
   document.querySelectorAll(".nat-opt").forEach(o=>o.classList.remove("sel"));
@@ -1532,6 +1532,8 @@ window.submitActionModal=async()=>{
   const eixoIds=getSelectedModalEixos();
   const eixoId=eixoIds[0]||allEixos[0]?.id; // primary eixo for grouping
   const eixo=allEixos.find(e=>e.id===eixoId);
+  // Read KRs from dynamic modal list
+  const modalKRs=getModalKRs();
   const data={
     titulo:title,objetivo:$("f-obj").value.trim(),eixo:eixoId,eixos:eixoIds,
     prazo:$("f-prazo").value,natureza:nats,
@@ -1539,10 +1541,12 @@ window.submitActionModal=async()=>{
     inicio:$("f-ini").value,fim:$("f-fim").value,
     responsavel:$("f-resp").value.trim()||"A definir",
     prioridade:parseInt($("f-prio").value)||allPlanos.length+1,
-    kr1Titulo:$("f-kr1t").value.trim()||"Resultado-chave 1",
-    kr1Meta:$("f-kr1d").value.trim()||$("f-fim").value,
-    kr2Titulo:$("f-kr2t").value.trim()||"Resultado-chave 2",
-    kr2Meta:$("f-kr2d").value.trim()||$("f-fim").value,
+    krs:modalKRs,
+    // keep legacy fields for backward compat
+    kr1Titulo:modalKRs[0]?.titulo||"Resultado-chave 1",
+    kr1Meta:modalKRs[0]?.meta||$("f-fim").value,
+    kr2Titulo:modalKRs[1]?.titulo||"Resultado-chave 2",
+    kr2Meta:modalKRs[1]?.meta||$("f-fim").value,
     quickWin:$("f-qw").checked,
   };
   try{
@@ -1564,6 +1568,121 @@ window.submitActionModal=async()=>{
 // ── Backup ────────────────────────────────────────────────────────────────────
 window.seedAcoes=seedAcoes;
 
+// ── Modal KR dynamic list ─────────────────────────────────────────────────────
+function renderModalKRs(krs){
+  const list=document.getElementById("modal-krs-list");
+  if(!list)return;
+  list.innerHTML=krs.map((kr,i)=>`
+    <div class="modal-kr-row" data-krnum="${kr.num||i+1}" draggable="true"
+      style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;cursor:grab;position:relative"
+      ondragstart="krDragStart(event,this)" ondragover="krDragOver(event,this)" ondrop="krDrop(event,this)" ondragend="krDragEnd(event)">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        <span style="cursor:grab;color:var(--mt);font-size:14px;padding:0 2px" title="Arrastar para reordenar">⠿</span>
+        <span style="font-family:Montserrat,sans-serif;font-size:10px;font-weight:800;color:var(--azul);background:#EEF2FB;padding:2px 7px;border-radius:4px">KR ${kr.num||i+1}</span>
+        ${krs.length>1?`<button type="button" onclick="removeModalKR(this)"
+          style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:11px;color:#ccc;padding:2px 5px;border-radius:4px;transition:all .15s"
+          onmouseover="this.style.color='var(--err)';this.style.background='#FEE2E2'"
+          onmouseout="this.style.color='#ccc';this.style.background='none'">✕ Remover</button>`:""}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mt);margin-bottom:4px">Descrição</div>
+          <input type="text" class="form-input modal-kr-titulo" value="${(kr.titulo||"").replace(/"/g,"&quot;")}" placeholder="O que será entregue ou medido?" style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--mt);margin-bottom:4px">Meta / Prazo</div>
+          <input type="text" class="form-input modal-kr-meta" value="${(kr.meta||"").replace(/"/g,"&quot;")}" placeholder="Ex: Jun/2027" style="width:100%">
+        </div>
+      </div>
+    </div>`).join("");
+  // attach drag events via JS (safer than inline for complex handlers)
+}
+
+function getModalKRs(){
+  return Array.from(document.querySelectorAll(".modal-kr-row")).map((row,i)=>{
+    return {
+      num: i+1,
+      titulo: row.querySelector(".modal-kr-titulo")?.value.trim()||"",
+      meta:   row.querySelector(".modal-kr-meta")?.value.trim()||"",
+      progress: 0
+    };
+  });
+}
+
+window.addModalKR=()=>{
+  const current=getModalKRs();
+  current.push({num:current.length+1,titulo:"",meta:"",progress:0});
+  renderModalKRs(current);
+};
+
+window.removeModalKR=btn=>{
+  const row=btn.closest(".modal-kr-row");
+  const current=getModalKRs().filter((_,i)=>i!==Array.from(document.querySelectorAll(".modal-kr-row")).indexOf(row));
+  if(current.length===0){toast("A ação deve ter pelo menos 1 KR.","warn");return;}
+  renderModalKRs(current);
+};
+
+// ── KR drag-and-drop reorder (modal + card) ───────────────────────────────────
+let dragSrc=null;
+window.krDragStart=(e,el)=>{
+  dragSrc=el;
+  el.style.opacity=".4";
+  e.dataTransfer.effectAllowed="move";
+};
+window.krDragOver=(e,el)=>{
+  e.preventDefault();
+  e.dataTransfer.dropEffect="move";
+  document.querySelectorAll(".modal-kr-row,.card-kr-row").forEach(r=>r.style.outline="");
+  if(el!==dragSrc) el.style.outline="2px dashed var(--azul)";
+};
+window.krDrop=(e,el)=>{
+  e.preventDefault();
+  if(!dragSrc||dragSrc===el)return;
+  el.style.outline="";
+  const list=el.parentElement;
+  const rows=Array.from(list.querySelectorAll(".modal-kr-row,.card-kr-row"));
+  const srcIdx=rows.indexOf(dragSrc);
+  const dstIdx=rows.indexOf(el);
+  if(srcIdx<dstIdx) el.insertAdjacentElement("afterend",dragSrc);
+  else el.insertAdjacentElement("beforebegin",dragSrc);
+  // renumber
+  list.querySelectorAll(".modal-kr-row,.card-kr-row").forEach((r,i)=>{
+    r.dataset.krnum=i+1;
+    const label=r.querySelector(".kr-num,span[class*=kr-num]");
+    if(label)label.textContent="KR "+(i+1);
+  });
+};
+window.krDragEnd=(e)=>{
+  document.querySelectorAll(".modal-kr-row,.card-kr-row").forEach(r=>{r.style.opacity="";r.style.outline="";});
+  dragSrc=null;
+};
+
+// ── Card KR drag-and-drop (save to Firestore on drop) ─────────────────────────
+window.cardKRDragStart=(e,el)=>{ dragSrc=el; el.style.opacity=".4"; e.dataTransfer.effectAllowed="move"; };
+window.cardKRDrop=async(e,el,pid)=>{
+  e.preventDefault();
+  if(!dragSrc||dragSrc===el)return;
+  el.style.outline="";
+  const list=el.parentElement;
+  const rows=Array.from(list.querySelectorAll(".card-kr-row"));
+  const srcIdx=rows.indexOf(dragSrc);
+  const dstIdx=rows.indexOf(el);
+  if(srcIdx<dstIdx) el.insertAdjacentElement("afterend",dragSrc);
+  else el.insertAdjacentElement("beforebegin",dragSrc);
+  // save new order to Firestore
+  const p=allPlanos.find(x=>x.id===pid); if(!p)return;
+  const oldKRs=getKRsFromPlano(p);
+  const newOrder=Array.from(list.querySelectorAll(".card-kr-row")).map((r,i)=>{
+    const oldNum=parseInt(r.dataset.krnum);
+    const old=oldKRs.find(k=>k.num===oldNum)||{titulo:"",meta:"",progress:0};
+    return {...old,num:i+1};
+  });
+  try{
+    await updateDoc(doc(db,"planosDeAcao",pid),{krs:newOrder,...auditU()});
+    toast("Ordem dos KRs salva.","suc",1500);
+  }catch(ex){handleErr(ex,"reordenar KRs");}
+};
+
 // ── KR helpers ────────────────────────────────────────────────────────────────
 function buildKRsHTML(p, border){
   const krs = Array.isArray(p.krs) && p.krs.length > 0
@@ -1574,9 +1693,14 @@ function buildKRsHTML(p, border){
       ];
   return krs.map((kr,i)=>{
     const num = kr.num || (i+1);
-    const key = `kr_${num}`;
     return `
-    <div class="kr-row" id="${p.id}-kr-${num}">
+    <div class="kr-row card-kr-row" id="${p.id}-kr-${num}" data-krnum="${num}"
+      draggable="true"
+      ondragstart="cardKRDragStart(event,this)"
+      ondragover="krDragOver(event,this)"
+      ondrop="cardKRDrop(event,this,'${p.id}')"
+      ondragend="krDragEnd(event)"
+      style="cursor:grab">
       <div class="kr-top">
         <span class="kr-num">KR ${num}</span>
         <span class="kr-title" contenteditable="true" spellcheck="false"
