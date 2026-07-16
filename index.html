@@ -300,12 +300,24 @@ body.presenting .tb .tbtn:not(.present-exit){display:none!important}
 body.presenting .present-exit{display:inline-flex!important}
 body.presenting .tb .tsep,.presenting .tb .tlab,.presenting #tb-status{display:none}
 body.presenting .ctrl,.presenting .tabs,.presenting #sync-bar{display:none}
-body.presenting .action-footer,.presenting .krs-section,.presenting .card-objetivo{display:none!important}
-body.presenting .add-here-btn,.presenting .del-eixo-btn,.presenting .card-del-btn,.presenting .sh-btns{display:none}
-body.presenting .action-card{padding:10px 14px}
-body.presenting .card-header-row{margin-bottom:0}
-body.presenting [contenteditable]{pointer-events:none}
-body.presenting .sh{display:none}
+body.presenting .sh-btns,.presenting .add-here-btn,.presenting .del-eixo-btn{display:none}
+body.presenting [contenteditable]{pointer-events:none;cursor:default}
+/* hide only action buttons and log input — keep KRs, status, objetivo visible */
+body.presenting .log-section-header,.presenting .log-entries,.presenting #\.log-input-row,
+body.presenting .log-row,.presenting .add-kr-btn,.presenting .card-arch-btn,
+body.presenting .saving-ind{display:none!important}
+body.presenting .action-footer .status-row{pointer-events:none}
+body.presenting .status-select{pointer-events:none;-webkit-appearance:none;border:none;background:transparent;font-weight:700;padding:0}
+/* Clean card styling for presentation */
+body.presenting .action-card{border-radius:14px;box-shadow:0 2px 12px rgba(0,30,87,.08);margin-bottom:2px}
+body.presenting .krs-section{grid-template-columns:1fr 1fr}
+body.presenting .kr-drag-handle{display:none}
+body.presenting .kr-slider{pointer-events:none}
+/* Present dashboard — bigger numbers */
+body.presenting .hst .sv{font-size:26px}
+body.presenting .dash{padding-bottom:16px}
+/* Status badge in present mode */
+body.presenting .status-select option:not(:checked){display:none}
 
 @media(max-width:900px){
   .dash{grid-template-columns:1fr 1fr}.hl{display:none}.krs-section{grid-template-columns:1fr}
@@ -383,6 +395,8 @@ body.presenting .sh{display:none}
   <div class="tsep"></div>
   <button class="tbtn" id="present-btn" onclick="enterPresent()">▶ Apresentação</button>
   <button class="tbtn present-exit" id="present-exit-btn" onclick="exitPresent()">✕ Sair da Apresentação</button>
+  <div class="tsep"></div>
+  <button class="tbtn" onclick="exportExcel()" style="color:#217346;border-color:#A9D18E" title="Exportar todas as ações para Excel">📊 Exportar Excel</button>
   <div class="tsep"></div>
   <span id="tb-status" class="tlab">⏳ Conectando...</span>
 </div>
@@ -2054,6 +2068,87 @@ window.saveObserver=async(id,val)=>{
     await updateDoc(doc(db,"planosDeAcao",id),{observador:val,...auditU()});
     if(val) toast(`Observador: ${val}`,"suc",2000);
   }catch(e){handleErr(e,"salvar observador");}
+};
+
+// ── Excel Export ──────────────────────────────────────────────────────────────
+window.exportExcel=()=>{
+  if(allPlanos.length===0){toast("Nenhuma ação para exportar.","warn");return;}
+
+  const natLabels={oportunidade:"Oportunidade",dor:"Dor",fluxo:"Falha de Fluxo",comunicacao:"Falha de Comunicação"};
+  const prazoLabels={curto:"Curto (até Dez/2026)",medio:"Médio (até Jun/2027)",longo:"Longo (até Dez/2027)"};
+  const statusLabels={nao_iniciado:"Não iniciado",em_andamento:"Em andamento",concluido:"Concluído",atrasado:"Atrasado",cancelado:"Cancelado"};
+
+  // Build rows
+  const rows=[];
+
+  // Header
+  rows.push([
+    "Prioridade","Título","Eixo","Prazo","Natureza","Status","Quick Win",
+    "Início","Conclusão","Responsável","Observador","Arquivada",
+    "Progresso Geral (%)","Nº de KRs",
+    "KR 1 — Descrição","KR 1 — Meta","KR 1 — Progresso (%)",
+    "KR 2 — Descrição","KR 2 — Meta","KR 2 — Progresso (%)",
+    "KR 3 — Descrição","KR 3 — Meta","KR 3 — Progresso (%)",
+    "KR 4 — Descrição","KR 4 — Meta","KR 4 — Progresso (%)",
+    "Objetivo / Descrição"
+  ]);
+
+  // Sort by prioridade
+  const sorted=[...allPlanos].sort((a,b)=>(a.prioridade||99)-(b.prioridade||99));
+
+  sorted.forEach(p=>{
+    const eixo=allEixos.find(e=>e.id===p.eixo);
+    const krs=getKRsFromPlano(p);
+    const avg=krs.length?Math.round(krs.reduce((s,k)=>s+(k.progress||0),0)/krs.length):0;
+    const nats=(p.natureza||[]).map(n=>natLabels[n]||n).join(", ");
+
+    const row=[
+      p.prioridade||"",
+      p.titulo||"",
+      eixo?.nome||p.eixo||"",
+      prazoLabels[p.prazo]||p.prazo||"",
+      nats,
+      statusLabels[p.status]||p.status||"Não iniciado",
+      p.quickWin?"Sim":"Não",
+      p.inicio||"",
+      p.fim||"",
+      p.responsavel||"",
+      p.observador||"",
+      p.arquivada?"Sim":"Não",
+      avg,
+      krs.length,
+    ];
+
+    // KRs 1–4
+    for(let i=0;i<4;i++){
+      const kr=krs[i];
+      row.push(kr?.titulo||"", kr?.meta||"", kr!=null?(kr.progress||0):"");
+    }
+
+    row.push(p.objetivo||"");
+    rows.push(row);
+  });
+
+  // Convert to CSV with BOM for Excel UTF-8
+  const BOM="﻿";
+  const csv=BOM+rows.map(row=>
+    row.map(cell=>{
+      const s=String(cell==null?"":cell);
+      // Quote cells that contain comma, newline or quote
+      if(s.includes(",")||s.includes("
+")||s.includes('"'))
+        return '"'+s.replace(/"/g,'""')+'"';
+      return s;
+    }).join(",")
+  ).join("
+");
+
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="plano_acao_cpp_"+new Date().toISOString().slice(0,10)+".csv";
+  a.click();
+  toast("Excel exportado com sucesso! 📊","suc");
 };
 
 window.exportBackup=()=>{
