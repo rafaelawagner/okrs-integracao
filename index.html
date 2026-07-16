@@ -699,43 +699,70 @@ function handleErr(e,op){
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
-// Handle redirect result on page load (after returning from Google login)
-getRedirectResult(auth).then(result => {
-  if (result?.user) {
-    // User signed in via redirect — onAuthStateChanged will handle the rest
+// ── Auth login ───────────────────────────────────────────────────────────────
+// Handle redirect result (when returning from Google sign-in page)
+// ── Auth helpers ─────────────────────────────────────────────────────────────
+const GOOGLE_SVG = `<svg viewBox="0 0 48 48" style="width:20px;height:20px;flex-shrink:0"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
+
+function showAuthErr(msg){
+  const el=document.getElementById("auth-err");
+  if(el){ el.textContent=msg; el.style.display="block"; }
+}
+function resetLoginBtn(){
+  const btn=document.getElementById("btn-google-login");
+  if(!btn)return;
+  btn.disabled=false;
+  btn.innerHTML=GOOGLE_SVG+" Entrar com Google";
+}
+
+// Handle redirect result when user returns from Google page
+getRedirectResult(auth).then(result=>{
+  if(result?.user){
+    // Successfully signed in via redirect — onAuthStateChanged will handle UI
+    console.log("Signed in via redirect:", result.user.email);
   }
-}).catch(e => {
-  const errEl = $("auth-err");
-  if (errEl) { errEl.textContent = e.message; errEl.style.display = "block"; }
-  console.error("Redirect result error:", e);
+}).catch(e=>{
+  if(e.code && e.code !== "auth/no-current-user"){
+    console.error("Redirect error:", e.code, e.message);
+    showAuthErr("Erro no login: "+e.message);
+    resetLoginBtn();
+  }
 });
 
-$("btn-google-login").onclick = async () => {
-  $("auth-err").style.display = "none";
-  $("btn-google-login").disabled = true;
-  $("btn-google-login").innerHTML = `<svg viewBox="0 0 48 48" style="width:20px;height:20px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Redirecionando para o Google...`;
-  try {
-    // Try popup first; fall back to redirect if blocked
-    await signInWithPopup(auth, gProv);
-  } catch (e) {
-    if (e.code === "auth/popup-blocked" || e.code === "auth/popup-closed-by-user" || e.message.includes("Cross-Origin")) {
-      // Popup blocked — use redirect instead
-      try { await signInWithRedirect(auth, gProv); }
-      catch (e2) {
-        $("auth-err").textContent = e2.message;
-        $("auth-err").style.display = "block";
-        $("btn-google-login").disabled = false;
-        $("btn-google-login").innerHTML = `<svg viewBox="0 0 48 48" style="width:20px;height:20px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Entrar com Google`;
+// Login button — try popup first, fall back to redirect
+document.addEventListener("DOMContentLoaded", ()=>{
+  const btn = document.getElementById("btn-google-login");
+  if(!btn) return;
+  btn.addEventListener("click", async()=>{
+    const errEl=document.getElementById("auth-err");
+    if(errEl) errEl.style.display="none";
+    btn.disabled=true;
+    btn.innerHTML=GOOGLE_SVG+" Acessando...";
+    try{
+      await signInWithPopup(auth, gProv);
+      // success — onAuthStateChanged handles the rest
+    }catch(e){
+      const isBlocked = e.code==="auth/popup-blocked"
+        || e.code==="auth/cancelled-popup-request"
+        || (e.message||"").includes("Cross-Origin")
+        || (e.message||"").includes("window.closed");
+      const isClosed = e.code==="auth/popup-closed-by-user";
+      if(isBlocked){
+        // Popup blocked — use redirect
+        btn.innerHTML=GOOGLE_SVG+" Redirecionando...";
+        try{ await signInWithRedirect(auth, gProv); }
+        catch(e2){ showAuthErr(e2.message); resetLoginBtn(); }
+      } else if(isClosed){
+        // User closed popup intentionally — just reset
+        resetLoginBtn();
+      } else {
+        // Real error
+        showAuthErr(e.message||"Erro desconhecido");
+        resetLoginBtn();
       }
-    } else {
-      $("auth-err").textContent = e.message;
-      $("auth-err").style.display = "block";
-      $("btn-google-login").disabled = false;
-      $("btn-google-login").innerHTML = `<svg viewBox="0 0 48 48" style="width:20px;height:20px"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Entrar com Google`;
     }
-  }
-};
-window.doLogout = async()=>{if(!confirm("Sair?"))return;unsubAll();await signOut(auth);};
+  });
+});
 
 $("user-chip").onclick = ()=>$("umenu").classList.toggle("open");
 document.addEventListener("click",e=>{if(!e.target.closest("#user-chip")&&!e.target.closest("#umenu"))$("umenu").classList.remove("open");});
