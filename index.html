@@ -196,7 +196,14 @@ header{background:var(--azul);color:#fff;overflow:hidden}
 .ap-bg{height:5px;background:var(--bg);border-radius:4px;overflow:hidden;width:80px;flex-shrink:0}
 .ap-fill{height:100%;border-radius:4px;transition:width .3s}
 .ap-pct{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;color:var(--azul);margin-left:auto}
-.log-entries{max-height:160px;overflow-y:auto;margin-bottom:6px;display:flex;flex-direction:column;gap:1px}
+.log-entries{max-height:160px;overflow-y:auto;margin-bottom:6px;display:flex;flex-direction:column;gap:1px;transition:max-height .3s ease}
+.log-entries.minimized{max-height:0;overflow:hidden;margin-bottom:0}
+.log-section-header{display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer;user-select:none;padding:4px 0}
+.log-section-header:hover .log-toggle{color:var(--azul)}
+.log-toggle{font-size:11px;color:var(--mt);transition:transform .2s;display:inline-block}
+.log-toggle.open{transform:rotate(180deg)}
+.log-count-badge{font-size:10px;font-weight:700;color:var(--azul);background:#EEF2FB;padding:1px 7px;border-radius:10px}
+.log-preview{font-size:11px;color:var(--mt);font-style:italic;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .log-entry{font-size:11px;color:var(--tx);padding:3px 0;border-bottom:1px solid var(--bg);display:flex;gap:6px;align-items:flex-start}
 .log-date{font-size:10px;color:var(--mt);flex-shrink:0;font-weight:600}
 .log-author{font-size:10px;color:var(--azul2);font-weight:600;flex-shrink:0}
@@ -762,8 +769,9 @@ function startListeners(){
   const qP=query(collection(db,"planosDeAcao"),orderBy("prioridade","asc"));
   unsubs.push(onSnapshot(qP,snap=>{
     allPlanos=snap.docs.map(d=>({id:d.id,...d.data()}));
-    // Only render if eixos are ready, otherwise renderAllCards will retry
-    renderAllCards(); updateDash(); checkAndShowSeedBanner(); renderBacklog();
+    // Smart render: update existing cards in-place, only add/remove as needed
+    smartRenderCards(snap.docChanges());
+    updateDash(); checkAndShowSeedBanner(); renderBacklog();
     setSyncStatus("ok","Sincronizado");
     $("tb-status").textContent="✅ Firestore em tempo real";
     $("last-upd").textContent=now();
@@ -778,7 +786,7 @@ function startListeners(){
     renderEixoManager(); renderEixoFilterBadges(); renderEixoProgressBars();
     populateModalEixoSelect();
     // Re-render cards now that eixos are available
-    if(allPlanos.length>0){ renderAllCards(); updateDash(); checkAndShowSeedBanner(); renderBacklog(); }
+    if(allPlanos.length>0){ smartRenderCards(null); updateDash(); checkAndShowSeedBanner(); renderBacklog(); }
   },e=>handleErr(e,"carregar eixos")));
 
   // Histórico
@@ -982,13 +990,126 @@ function hexToBg(hex){
 }
 
 // ── Render Cards ──────────────────────────────────────────────────────────────
+// Smart render: process only changed docs, never destroy comment containers
+function smartRenderCards(changes){
+  if(allEixos.length===0){ setTimeout(()=>smartRenderCards(changes),300); return; }
+
+  // First run or forced full render (changes===null):
+  // build only cards not yet in DOM, never destroy existing ones
+  if(!changes||changes.length===0){
+    allPlanos.filter(p=>!p.arquivada).forEach(p=>{
+      if(!document.getElementById(p.id)){
+        const eixo=allEixos.find(x=>x.id===p.eixo)||{cor:"#9E9E9E",nome:"Sem Eixo"};
+        ensureEixoSection(eixo);
+        renderCard(p,eixo);
+      } else {
+        updateCardFields(p);
+      }
+    });
+    updateGantt(); return;
+  }
+
+  // Incremental updates from Firestore docChanges
+  changes.forEach(change=>{
+    const p={id:change.doc.id,...change.doc.data()};
+    if(change.type==="removed"){
+      const el=document.getElementById(p.id); if(el)el.remove();
+      const gr=document.getElementById("gr-"+p.id); if(gr)gr.remove();
+    } else if(change.type==="added"){
+      if(!document.getElementById(p.id)&&!p.arquivada){
+        const eixo=allEixos.find(x=>x.id===p.eixo)||{cor:"#9E9E9E",nome:"Sem Eixo"};
+        ensureEixoSection(eixo);
+        renderCard(p,eixo);
+      }
+    } else if(change.type==="modified"){
+      if(p.arquivada){
+        // Archived — remove from main view if present
+        const el=document.getElementById(p.id); if(el)el.remove();
+      } else if(!document.getElementById(p.id)){
+        // Not in DOM yet (e.g. restored from backlog)
+        const eixo=allEixos.find(x=>x.id===p.eixo)||{cor:"#9E9E9E",nome:"Sem Eixo"};
+        ensureEixoSection(eixo);
+        renderCard(p,eixo);
+      } else {
+        // Already in DOM — update fields only, NEVER destroy comment container
+        updateCardFields(p);
+      }
+    }
+  });
+  updateGantt();
+}
+
+// Ensure eixo section exists in DOM without destroying anything
+function ensureEixoSection(eixo){
+  if(document.getElementById("eixo-sec-"+eixo.id)) return;
+  const sec=document.createElement("div");
+  sec.className="eixo-section"; sec.id="eixo-sec-"+eixo.id;
+  sec.innerHTML=`
+    <div class="eixo-hdr">
+      <div class="eixo-dot" style="background:${eixo.cor}"></div>
+      <span class="eixo-lbl" style="color:${eixo.cor}">${eixo.nome}</span>
+      <span class="eixo-cnt" id="cnt-${eixo.id}">0 ações</span>
+      <div class="eixo-div"></div>
+      <button class="add-here-btn" onclick="openActionModal('${eixo.id}')">+ Ação</button>
+    </div>
+    <div id="cards-${eixo.id}"></div>`;
+  document.getElementById("tab-cards")?.appendChild(sec);
+}
+
+// Update specific card fields without destroying comments
+function updateCardFields(p){
+  const card=document.getElementById(p.id); if(!card)return;
+  const eixo=allEixos.find(x=>x.id===p.eixo)||{cor:"#9E9E9E",nome:"Sem Eixo"};
+  const border=p.borderColor||eixo.cor;
+
+  // Update title and objetivo if not currently focused
+  const titleEl=card.querySelector(".card-title");
+  if(titleEl&&document.activeElement!==titleEl) titleEl.textContent=p.titulo||"";
+  const objEl=card.querySelector(".card-objetivo");
+  if(objEl&&document.activeElement!==objEl) objEl.textContent=p.objetivo||"";
+
+  // Update status select
+  const sel=card.querySelector(".status-select");
+  if(sel&&document.activeElement!==sel) sel.value=p.status||"nao_iniciado";
+  const fill=document.getElementById(p.id+"-fill");
+  if(fill){ const sc={nao_iniciado:"#6B7BA4",em_andamento:"#F5A623",concluido:"#3AAA35",atrasado:"#E53935",cancelado:"#9E9E9E"};
+    fill.style.background=sc[p.status||"nao_iniciado"]; }
+
+  // Update KR sliders and progress
+  const krs=getKRsFromPlano(p);
+  krs.forEach(kr=>{
+    const slider=card.querySelector(`.kr-slider[data-krnum="${kr.num}"]`);
+    if(slider&&document.activeElement!==slider) slider.value=kr.progress||0;
+    const bar=document.getElementById(p.id+"-krbar-"+kr.num);
+    if(bar) bar.style.width=(kr.progress||0)+"%";
+    const pct=document.getElementById(p.id+"-krpct-"+kr.num);
+    if(pct) pct.textContent=(kr.progress||0)+"%";
+  });
+  const avg=Math.round(krs.reduce((s,k)=>s+(k.progress||0),0)/krs.length);
+  const pctEl=document.getElementById(p.id+"-pct");
+  if(pctEl) pctEl.textContent=avg+"%";
+  if(fill) fill.style.width=avg+"%";
+}
+
+function updateGantt(){
+  // Rebuild gantt rows without affecting cards
+  $("gantt-rows").innerHTML="";
+  allPlanos.filter(p=>!p.arquivada).forEach(p=>{
+    const eixo=allEixos.find(x=>x.id===p.eixo)||{cor:"#9E9E9E"};
+    const krs=getKRsFromPlano(p);
+    const avg=Math.round(krs.reduce((s,k)=>s+(k.progress||0),0)/krs.length);
+    addGanttRow(p.id,p.titulo||"Sem título",p.inicio||"Jul/2026",p.fim||"Dez/2027",p.borderColor||eixo.cor,avg);
+  });
+}
+
 function renderAllCards(){
   // Wait until eixos are loaded before rendering cards
   if(allEixos.length===0){
     setTimeout(renderAllCards, 300);
     return;
   }
-  $("tab-cards").innerHTML=""; $("gantt-rows").innerHTML="";
+  // Build eixo sections and cards without destroying existing DOM
+  $("gantt-rows").innerHTML="";
   allEixos.forEach(e=>{
     // match if eixo is primary OR in eixos array — exclude archived
     const pl=allPlanos.filter(p=>!p.arquivada&&(p.eixo===e.id||(Array.isArray(p.eixos)&&p.eixos.includes(e.id))));
@@ -1005,7 +1126,7 @@ function renderAllCards(){
       </div>
       <div id="cards-${e.id}"></div>`;
     $("tab-cards").appendChild(sec);
-    pl.forEach(p=>renderCard(p,e));
+    pl.forEach(p=>{ if(!document.getElementById(p.id)) renderCard(p,e); else updateCardFields(p); });
   });
   // ações sem eixo válido → container fallback
   const orphans=allPlanos.filter(p=>!allEixos.find(e=>e.id===p.eixo));
@@ -1097,8 +1218,14 @@ function renderCard(p,e){
           ${buildObserverOptions(p.observador)}
         </select>
       </div>
-      <div class="log-entries" id="${p.id}-log"><div class="log-empty">Carregando atualizações...</div></div>
-      <div class="log-row">
+      <div class="log-section-header" onclick="toggleComments('${p.id}')">
+        <span class="log-toggle" id="${p.id}-toggle">▼</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mt)">Atualizações</span>
+        <span class="log-count-badge" id="${p.id}-log-cnt">0</span>
+        <span class="log-preview" id="${p.id}-log-preview"></span>
+      </div>
+      <div class="log-entries minimized" id="${p.id}-log"><div class="log-empty">Carregando atualizações...</div></div>
+      <div class="log-row" id="${p.id}-log-input-row" style="display:none;margin-top:5px">
         <input type="text" class="log-inp" id="${p.id}-li" placeholder="Registrar atualização..." onkeydown="if(event.key==='Enter')addComment('${p.id}')">
         <button class="log-btn" onclick="addComment('${p.id}')">+ Registrar</button>
       </div>
@@ -1157,8 +1284,13 @@ function loadComments(pid){
     const c=document.getElementById(pid+"-log");
     if(!c){ setTimeout(()=>loadComments(pid), 400); commentUnsubs[pid]=null; return; }
     const uid=auth.currentUser?.uid;
+    // Update count badge and preview regardless of minimized state
+    const countBadge=document.getElementById(pid+"-log-cnt");
+    const preview=document.getElementById(pid+"-log-preview");
     if(snap.empty){
       c.innerHTML='<div class="log-empty">Nenhuma atualização ainda.</div>';
+      if(countBadge) countBadge.textContent="0";
+      if(preview) preview.textContent="";
       return;
     }
     // sort by createdAt in JS — oldest first
@@ -1167,6 +1299,11 @@ function loadComments(pid){
       const tb=b.data().createdAt?.toMillis?.()||0;
       return ta-tb;
     });
+    if(countBadge) countBadge.textContent=docs.length;
+    if(preview){
+      const last=docs[docs.length-1]?.data();
+      preview.textContent=last?`${last.autorDisplayName||last.autorEmail||"?"}: ${(last.texto||"").slice(0,40)}${last.texto?.length>40?"…":""}` :"";
+    }
     c.innerHTML=docs.map(d=>{
       const x=d.data();
       const isAuthor=x.autorUid===uid;
@@ -1203,6 +1340,19 @@ function loadComments(pid){
     if(c) c.innerHTML='<div class="log-empty" style="color:var(--err)">Erro ao carregar atualizações. Verifique as regras do Firestore.</div>';
   });
 }
+window.toggleComments=pid=>{
+  const entries=document.getElementById(pid+"-log");
+  const toggle=document.getElementById(pid+"-toggle");
+  const inputRow=document.getElementById(pid+"-log-input-row");
+  if(!entries)return;
+  const isMin=entries.classList.contains("minimized");
+  entries.classList.toggle("minimized",!isMin);
+  if(toggle) toggle.classList.toggle("open",isMin);
+  if(toggle) toggle.style.transform=isMin?"rotate(0deg)":"rotate(-90deg)";
+  if(inputRow) inputRow.style.display=isMin?"flex":"none";
+  if(isMin) entries.scrollTop=entries.scrollHeight;
+};
+
 window.addComment=async pid=>{
   const inp=$(pid+"-li"),texto=inp.value.trim();if(!texto)return;
   inp.value="";
@@ -1573,11 +1723,15 @@ function renderModalKRs(krs){
   const list=document.getElementById("modal-krs-list");
   if(!list)return;
   list.innerHTML=krs.map((kr,i)=>`
-    <div class="modal-kr-row" data-krnum="${kr.num||i+1}" draggable="true"
-      style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;cursor:grab;position:relative"
-      ondragstart="krDragStart(event,this)" ondragover="krDragOver(event,this)" ondrop="krDrop(event,this)" ondragend="krDragEnd(event)">
+    <div class="modal-kr-row" data-krnum="${kr.num||i+1}"
+      ondragover="krDragOver(event,this)" ondrop="krDrop(event,this)" ondragend="krDragEnd(event)"
+      style="background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;position:relative">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-        <span style="cursor:grab;color:var(--mt);font-size:14px;padding:0 2px" title="Arrastar para reordenar">⠿</span>
+        <span draggable="true"
+          ondragstart="krDragStart(event,this.closest('.modal-kr-row'))"
+          title="Arrastar para reordenar"
+          style="cursor:grab;color:var(--mt);font-size:14px;padding:0 4px;user-select:none"
+          onmousedown="event.stopPropagation()">⠿</span>
         <span style="font-family:Montserrat,sans-serif;font-size:10px;font-weight:800;color:var(--azul);background:#EEF2FB;padding:2px 7px;border-radius:4px">KR ${kr.num||i+1}</span>
         ${krs.length>1?`<button type="button" onclick="removeModalKR(this)"
           style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:11px;color:#ccc;padding:2px 5px;border-radius:4px;transition:all .15s"
@@ -1625,15 +1779,18 @@ window.removeModalKR=btn=>{
 // ── KR drag-and-drop reorder (modal + card) ───────────────────────────────────
 let dragSrc=null;
 window.krDragStart=(e,el)=>{
+  // el is the row (passed from handle's ondragstart)
   dragSrc=el;
-  el.style.opacity=".4";
+  setTimeout(()=>{ if(dragSrc) dragSrc.style.opacity=".45"; },0);
   e.dataTransfer.effectAllowed="move";
+  e.stopPropagation();
 };
 window.krDragOver=(e,el)=>{
   e.preventDefault();
   e.dataTransfer.dropEffect="move";
   document.querySelectorAll(".modal-kr-row,.card-kr-row").forEach(r=>r.style.outline="");
   if(el!==dragSrc) el.style.outline="2px dashed var(--azul)";
+  e.stopPropagation();
 };
 window.krDrop=(e,el)=>{
   e.preventDefault();
@@ -1658,7 +1815,12 @@ window.krDragEnd=(e)=>{
 };
 
 // ── Card KR drag-and-drop (save to Firestore on drop) ─────────────────────────
-window.cardKRDragStart=(e,el)=>{ dragSrc=el; el.style.opacity=".4"; e.dataTransfer.effectAllowed="move"; };
+window.cardKRDragStart=(e,el)=>{
+  dragSrc=el;
+  setTimeout(()=>{ if(dragSrc) dragSrc.style.opacity=".45"; },0);
+  e.dataTransfer.effectAllowed="move";
+  e.stopPropagation();
+};
 window.cardKRDrop=async(e,el,pid)=>{
   e.preventDefault();
   if(!dragSrc||dragSrc===el)return;
@@ -1695,13 +1857,15 @@ function buildKRsHTML(p, border){
     const num = kr.num || (i+1);
     return `
     <div class="kr-row card-kr-row" id="${p.id}-kr-${num}" data-krnum="${num}"
-      draggable="true"
-      ondragstart="cardKRDragStart(event,this)"
       ondragover="krDragOver(event,this)"
       ondrop="cardKRDrop(event,this,'${p.id}')"
-      ondragend="krDragEnd(event)"
-      style="cursor:grab">
+      ondragend="krDragEnd(event)">
       <div class="kr-top">
+        <span class="kr-drag-handle" draggable="true"
+          ondragstart="cardKRDragStart(event,this.closest('.card-kr-row'))"
+          title="Arrastar para reordenar"
+          style="cursor:grab;color:var(--mt);font-size:13px;padding:0 3px;user-select:none;flex-shrink:0"
+          onmousedown="event.stopPropagation()">⠿</span>
         <span class="kr-num">KR ${num}</span>
         <span class="kr-title" contenteditable="true" spellcheck="false"
           data-ph="Resultado-chave ${num}"
