@@ -460,7 +460,7 @@ body.presenting .status-select option:not(:checked){display:none}
   </div></div>
   <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
     <div style="position:relative">
-      <input type="text" id="search-input" placeholder="🔍 Buscar ação..." oninput="applyFilters()"
+      <input type="text" id="search-input" placeholder="🔍 Buscar ação..." oninput="window.applyFilters&&window.applyFilters()"
         style="border:1.5px solid var(--bd);border-radius:7px;padding:5px 10px 5px 10px;font-size:12px;font-family:inherit;color:var(--tx);width:200px;transition:border-color .15s"
         onfocus="this.style.borderColor='var(--azul)'" onblur="this.style.borderColor='var(--bd)'">
     </div>
@@ -1562,7 +1562,7 @@ let fEv=null,fPv=null,fSv=null;
 window.fE=(el,v)=>{fEv=fEv===v?null:v;document.querySelectorAll(".lb").forEach(b=>b.classList.remove("act"));if(fEv)el.classList.add("act");applyFilters();};
 window.fP=(el,v)=>{fPv=fPv===v?null:v;if(fPv)el.classList.add("act");else el.classList.remove("act");applyFilters();};
 window.fS=(el,v)=>{fSv=fSv===v?null:v;if(fSv)el.classList.add("act");else el.classList.remove("act");applyFilters();};
-function applyFilters(){
+window.applyFilters=function applyFilters(){
   const q=(document.getElementById("search-input")?.value||"").toLowerCase().trim();
 
   document.querySelectorAll(".action-card").forEach(c=>{
@@ -1610,6 +1610,9 @@ window.showAll=()=>{
   fEv=null;fPv=null;fSv=null;
   document.querySelectorAll(".eixo-section").forEach(s=>s.style.display="");
 };
+// Expose to global scope (needed because ES modules are isolated)
+window.applyFilters=applyFilters;
+window.fE=fE; window.fP=fP; window.fS=fS;
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 window.switchTab=(t,el)=>{
