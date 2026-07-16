@@ -153,8 +153,18 @@ header{background:var(--azul);color:#fff;overflow:hidden}
 .meta-value{font-size:11px;font-weight:600;text-align:right}
 .prazo-tag{display:inline-flex;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
 .qw-star{position:absolute;top:-1px;right:34px;background:var(--azul);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:0 0 6px 6px;letter-spacing:.05em}
-.card-del-btn{position:absolute;top:8px;right:8px;background:none;border:none;cursor:pointer;font-size:13px;opacity:.2;transition:opacity .15s;padding:2px 4px;border-radius:4px}
-.card-del-btn:hover{opacity:1;background:#FEE2E2}
+/* delete button now inline in badge-row */
+/* archive button now inline in badge-row */
+.backlog-card{background:var(--sf);border:1px solid var(--bd);border-radius:11px;padding:14px 16px;border-left:4px solid #9E9E9E;position:relative;opacity:.85;margin-bottom:8px}
+.backlog-card:hover{box-shadow:0 3px 14px rgba(0,30,87,.08);opacity:1}
+.backlog-restore-btn{background:var(--azul);color:#fff;border:none;border-radius:6px;padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer;margin-right:6px;transition:opacity .15s}
+.backlog-restore-btn:hover{opacity:.85}
+.backlog-del-btn{background:none;color:var(--err);border:1px solid #FFCDD2;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s}
+.backlog-del-btn:hover{background:#FFF0F0}
+.add-kr-btn{display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:11px;font-weight:700;color:var(--azul);background:transparent;border:1.5px dashed var(--bd);border-radius:6px;padding:4px 10px;cursor:pointer;transition:all .15s}
+.add-kr-btn:hover{border-color:var(--azul);background:#EEF2FB}
+.kr-remove-btn{background:none;border:none;cursor:pointer;font-size:11px;color:#ccc;padding:1px 3px;border-radius:3px;margin-left:auto;flex-shrink:0}
+.kr-remove-btn:hover{color:var(--err);background:#FEE2E2}
 .saving-ind{position:absolute;top:8px;right:34px;font-size:10px;color:var(--mt);font-weight:600;display:none;animation:fadeIn .2s}
 .saving-ind.show{display:block}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -186,17 +196,28 @@ header{background:var(--azul);color:#fff;overflow:hidden}
 .ap-bg{height:5px;background:var(--bg);border-radius:4px;overflow:hidden;width:80px;flex-shrink:0}
 .ap-fill{height:100%;border-radius:4px;transition:width .3s}
 .ap-pct{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;color:var(--azul);margin-left:auto}
-.log-entries{max-height:80px;overflow-y:auto;margin-bottom:5px}
+.log-entries{max-height:160px;overflow-y:auto;margin-bottom:6px;display:flex;flex-direction:column;gap:1px}
 .log-entry{font-size:11px;color:var(--tx);padding:3px 0;border-bottom:1px solid var(--bg);display:flex;gap:6px;align-items:flex-start}
 .log-date{font-size:10px;color:var(--mt);flex-shrink:0;font-weight:600}
 .log-author{font-size:10px;color:var(--azul2);font-weight:600;flex-shrink:0}
 .log-text{flex:1;line-height:1.4}
-.log-del{color:#ccc;cursor:pointer;font-size:11px;flex-shrink:0}.log-del:hover{color:var(--err)}
+.log-del{color:#ccc;cursor:pointer;font-size:11px;flex-shrink:0;padding:1px 3px;border-radius:3px;border:none;background:none}.log-del:hover{color:var(--err);background:#FEE2E2}
+.log-edit-btn{color:#ccc;cursor:pointer;font-size:11px;flex-shrink:0;padding:1px 3px;border-radius:3px;border:none;background:none}.log-edit-btn:hover{color:var(--azul);background:#EEF2FB}
+.log-actions{display:flex;gap:2px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.log-entry:hover .log-actions{opacity:1}
 .log-row{display:flex;gap:5px}
 .log-inp{flex:1;border:1.5px solid var(--bd);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;color:var(--tx)}
 .log-inp:focus{outline:none;border-color:var(--azul)}
 .log-btn{background:var(--azul);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .log-btn:hover{opacity:.85}
+.log-edit-area{display:none;margin-top:4px;gap:4px}
+.log-edit-area.open{display:flex}
+.log-edit-inp{flex:1;border:1.5px solid var(--azul);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;color:var(--tx)}
+.log-edit-inp:focus{outline:none}
+.log-edit-save{background:var(--azul);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer}
+.log-edit-cancel{background:none;color:var(--mt);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer}
+.log-entry{position:relative}
+.log-empty{font-size:11px;color:var(--mt);font-style:italic;padding:4px 0}
 
 /* GANTT */
 .gp{padding:16px 32px 40px}
@@ -396,6 +417,7 @@ body.presenting .sh{display:none}
   <div class="tab" onclick="switchTab('gantt',this)">📅 Timeline</div>
   <div class="tab" onclick="switchTab('hist',this)">🕓 Histórico</div>
   <div class="tab" onclick="switchTab('eixos',this)">⚙️ Eixos</div>
+  <div class="tab" onclick="switchTab('backlog',this)">📦 Backlog</div>
 </div>
 
 <!-- FILTERS -->
@@ -415,7 +437,14 @@ body.presenting .sh{display:none}
     <span class="lb" style="color:#3AAA35;background:#E8F7E7" onclick="fS(this,'concluido')"><span class="dot"></span>Concluído</span>
     <span class="lb" style="color:#E53935;background:#FAEAEA" onclick="fS(this,'atrasado')"><span class="dot"></span>Atrasado</span>
   </div></div>
-  <div style="margin-left:auto"><button class="showall" onclick="showAll()">Mostrar todas</button></div>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <div style="position:relative">
+      <input type="text" id="search-input" placeholder="🔍 Buscar ação..." oninput="applyFilters()"
+        style="border:1.5px solid var(--bd);border-radius:7px;padding:5px 10px 5px 10px;font-size:12px;font-family:inherit;color:var(--tx);width:200px;transition:border-color .15s"
+        onfocus="this.style.borderColor='var(--azul)'" onblur="this.style.borderColor='var(--bd)'">
+    </div>
+    <button class="showall" onclick="showAll()">Mostrar todas</button>
+  </div>
 </div>
 
 <div class="sh" id="tab-sh">
@@ -478,6 +507,19 @@ body.presenting .sh{display:none}
       </div>
     </div>
   </div>
+</div>
+
+
+<!-- BACKLOG PANEL -->
+<div class="hist-list" id="tab-backlog" style="display:none">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+    <div>
+      <h2 style="font-family:Montserrat,sans-serif;font-size:16px;font-weight:800;color:var(--azul)">📦 Backlog — Ações Arquivadas</h2>
+      <p style="font-size:12px;color:var(--mt);margin-top:4px">Ações pausadas temporariamente. Retome quando o momento for oportuno.</p>
+    </div>
+    <span id="backlog-count" style="font-family:Montserrat,sans-serif;font-size:22px;font-weight:900;color:var(--azul)">0</span>
+  </div>
+  <div id="backlog-content"><div class="hist-empty" style="color:var(--mt);font-size:13px;text-align:center;padding:32px">Nenhuma ação arquivada. Use o botão 📦 nos cards para arquivar ações.</div></div>
 </div>
 
 </div><!-- /main -->
@@ -721,7 +763,7 @@ function startListeners(){
   unsubs.push(onSnapshot(qP,snap=>{
     allPlanos=snap.docs.map(d=>({id:d.id,...d.data()}));
     // Only render if eixos are ready, otherwise renderAllCards will retry
-    renderAllCards(); updateDash(); checkAndShowSeedBanner();
+    renderAllCards(); updateDash(); checkAndShowSeedBanner(); renderBacklog();
     setSyncStatus("ok","Sincronizado");
     $("tb-status").textContent="✅ Firestore em tempo real";
     $("last-upd").textContent=now();
@@ -736,7 +778,7 @@ function startListeners(){
     renderEixoManager(); renderEixoFilterBadges(); renderEixoProgressBars();
     populateModalEixoSelect();
     // Re-render cards now that eixos are available
-    if(allPlanos.length>0){ renderAllCards(); updateDash(); checkAndShowSeedBanner(); }
+    if(allPlanos.length>0){ renderAllCards(); updateDash(); checkAndShowSeedBanner(); renderBacklog(); }
   },e=>handleErr(e,"carregar eixos")));
 
   // Histórico
@@ -948,8 +990,8 @@ function renderAllCards(){
   }
   $("tab-cards").innerHTML=""; $("gantt-rows").innerHTML="";
   allEixos.forEach(e=>{
-    // match if eixo is primary OR in eixos array
-    const pl=allPlanos.filter(p=>p.eixo===e.id||(Array.isArray(p.eixos)&&p.eixos.includes(e.id)));
+    // match if eixo is primary OR in eixos array — exclude archived
+    const pl=allPlanos.filter(p=>!p.arquivada&&(p.eixo===e.id||(Array.isArray(p.eixos)&&p.eixos.includes(e.id))));
     const sec=document.createElement("div");
     sec.className="eixo-section"; sec.id="eixo-sec-"+e.id;
     sec.innerHTML=`
@@ -1004,12 +1046,25 @@ function renderCard(p,e){
   div.innerHTML=`
     ${p.quickWin?'<div class="qw-star">⚡ Quick Win</div>':""}
     <span class="saving-ind" id="sav-${p.id}">💾 salvando...</span>
-    <button class="card-del-btn" onclick="deleteAction('${p.id}')" title="Excluir ação">🗑</button>
     <div class="card-header-row">
       <div class="priority-num" style="background:${hexToBg(eixo.cor)};color:${eixo.cor}">${prioNum}</div>
       <div>
-        <div class="badge-row">${badgesHTML}
-          <button style="margin-left:auto;background:none;border:none;cursor:pointer;font-size:11px;color:var(--mt);padding:1px 4px;border-radius:4px" onclick="openEditActionModal('${p.id}')" title="Editar todos os campos">✏️</button>
+        <div class="badge-row" style="align-items:center">
+          ${badgesHTML}
+          <div style="margin-left:auto;display:flex;gap:5px;flex-shrink:0;align-items:center">
+            <button style="display:inline-flex;align-items:center;gap:3px;background:none;border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;color:var(--mt);padding:3px 8px;font-weight:600;transition:all .15s"
+              onmouseover="this.style.borderColor='var(--azul)';this.style.color='var(--azul)'"
+              onmouseout="this.style.borderColor='var(--bd)';this.style.color='var(--mt)'"
+              onclick="openEditActionModal('${p.id}')" title="Editar ação">✏️ Editar</button>
+            <button style="display:inline-flex;align-items:center;gap:3px;background:none;border:1px solid var(--bd);border-radius:6px;cursor:pointer;font-size:11px;color:var(--mt);padding:3px 8px;font-weight:600;transition:all .15s"
+              onmouseover="this.style.borderColor='#F5C200';this.style.color='#A07800';this.style.background='#FFFBEA'"
+              onmouseout="this.style.borderColor='var(--bd)';this.style.color='var(--mt)';this.style.background='none'"
+              onclick="archiveAction('${p.id}')" title="Arquivar no backlog">📦 Arquivar</button>
+            <button style="display:inline-flex;align-items:center;gap:3px;background:none;border:1px solid #FFCDD2;border-radius:6px;cursor:pointer;font-size:11px;color:var(--err);padding:3px 8px;font-weight:600;transition:all .15s"
+              onmouseover="this.style.background='#FFF0F0';this.style.borderColor='var(--err)'"
+              onmouseout="this.style.background='none';this.style.borderColor='#FFCDD2'"
+              onclick="deleteAction('${p.id}')" title="Excluir ação permanentemente">🗑 Excluir</button>
+          </div>
         </div>
         <div class="card-title" contenteditable="true" spellcheck="false" data-ph="Título da ação" onblur="saveField('${p.id}','titulo',this.innerText,'editar_titulo')">${p.titulo||""}</div>
         <div class="card-objetivo" contenteditable="true" spellcheck="false" data-ph="Descrição" onblur="saveField('${p.id}','objetivo',this.innerText,'editar_objetivo')">${p.objetivo||""}</div>
@@ -1019,36 +1074,10 @@ function renderCard(p,e){
         <div><div class="meta-label">Período</div><div class="meta-value">${p.inicio||"—"} → ${p.fim||"—"}</div></div>
       </div>
     </div>
-    <div class="krs-section">
-      <div class="kr-row">
-        <div class="kr-top">
-          <span class="kr-num">KR 1</span>
-          <span class="kr-title" contenteditable="true" spellcheck="false" data-ph="Resultado-chave 1" onblur="saveField('${p.id}','kr1Titulo',this.innerText,'editar_kr1')">${p.kr1Titulo||""}</span>
-          <span class="kr-dl">Meta: <span contenteditable="true" spellcheck="false" onblur="saveField('${p.id}','kr1Meta',this.innerText,'editar_kr1meta')">${p.kr1Meta||""}</span></span>
-          <span class="kr-rl">Resp.:</span>
-          <span class="kr-rv" contenteditable="true" spellcheck="false" data-ph="Responsável" onblur="saveField('${p.id}','responsavel',this.innerText,'editar_responsavel')">${p.responsavel||""}</span>
-          <span class="kr-pct" id="${p.id}-k1p">${p.kr1Progress||0}%</span>
-        </div>
-        <div class="kr-prog-row">
-          <input type="range" min="0" max="100" value="${p.kr1Progress||0}" class="kr-slider" data-id="${p.id}" data-kr="1" oninput="updateKRUI(this)" onchange="saveKR(this)">
-          <div class="kr-bar-bg"><div class="kr-bar-fill" id="${p.id}-k1b" style="width:${p.kr1Progress||0}%;background:${border}"></div></div>
-        </div>
-      </div>
-      <div class="kr-row">
-        <div class="kr-top">
-          <span class="kr-num">KR 2</span>
-          <span class="kr-title" contenteditable="true" spellcheck="false" data-ph="Resultado-chave 2" onblur="saveField('${p.id}','kr2Titulo',this.innerText,'editar_kr2')">${p.kr2Titulo||""}</span>
-          <span class="kr-dl">Meta: <span contenteditable="true" spellcheck="false" onblur="saveField('${p.id}','kr2Meta',this.innerText,'editar_kr2meta')">${p.kr2Meta||""}</span></span>
-          <span class="kr-rl">Resp.:</span>
-          <span class="kr-rv" contenteditable="true" spellcheck="false" data-ph="Responsável" onblur="saveField('${p.id}','responsavel',this.innerText,'editar_responsavel')">${p.responsavel||""}</span>
-          <span class="kr-pct" id="${p.id}-k2p">${p.kr2Progress||0}%</span>
-        </div>
-        <div class="kr-prog-row">
-          <input type="range" min="0" max="100" value="${p.kr2Progress||0}" class="kr-slider" data-id="${p.id}" data-kr="2" oninput="updateKRUI(this)" onchange="saveKR(this)">
-          <div class="kr-bar-bg"><div class="kr-bar-fill" id="${p.id}-k2b" style="width:${p.kr2Progress||0}%;background:${border}"></div></div>
-        </div>
-      </div>
+    <div class="krs-section" id="${p.id}-krs" style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:9px">
+      ${buildKRsHTML(p, border)}
     </div>
+    <button class="add-kr-btn" onclick="addKR('${p.id}')">＋ Adicionar KR</button>
     <div class="action-footer">
       <div class="status-row">
         <span class="status-lbl">Status:</span>
@@ -1062,7 +1091,13 @@ function renderCard(p,e){
         <div class="ap-bg"><div class="ap-fill" id="${p.id}-fill" style="width:${avg}%;background:${scMap[p.status||'nao_iniciado']}"></div></div>
         <span class="ap-pct" id="${p.id}-pct">${avg}%</span>
       </div>
-      <div class="log-entries" id="${p.id}-log"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--mt)">👁 Observador:</span>
+        <select id="obs-${p.id}" style="border:1.5px solid var(--bd);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;background:var(--sf);cursor:pointer;color:var(--tx)" onchange="saveObserver('${p.id}',this.value)">
+          ${buildObserverOptions(p.observador)}
+        </select>
+      </div>
+      <div class="log-entries" id="${p.id}-log"><div class="log-empty">Carregando atualizações...</div></div>
       <div class="log-row">
         <input type="text" class="log-inp" id="${p.id}-li" placeholder="Registrar atualização..." onkeydown="if(event.key==='Enter')addComment('${p.id}')">
         <button class="log-btn" onclick="addComment('${p.id}')">+ Registrar</button>
@@ -1115,14 +1150,50 @@ window.saveStatus=async sel=>{
 // ── Comments ──────────────────────────────────────────────────────────────────
 function loadComments(pid){
   if(commentUnsubs[pid])return;
-  const q=query(collection(db,"comentarios"),where("planoId","==",pid),orderBy("createdAt","desc"),limit(20));
+  const q=query(collection(db,"comentarios"),where("planoId","==",pid),orderBy("createdAt","asc"),limit(50));
   commentUnsubs[pid]=onSnapshot(q,snap=>{
-    const c=$(pid+"-log"); if(!c)return;
+    // retry if container not yet in DOM
+    const c=document.getElementById(pid+"-log");
+    if(!c){ setTimeout(()=>loadComments(pid), 400); commentUnsubs[pid]=null; return; }
+    const uid=auth.currentUser?.uid;
+    if(snap.empty){
+      c.innerHTML='<div class="log-empty">Nenhuma atualização ainda.</div>';
+      return;
+    }
     c.innerHTML=snap.docs.map(d=>{
       const x=d.data();
-      return `<div class="log-entry"><span class="log-date">${tsStr(x.createdAt)}</span><span class="log-author">${x.autorDisplayName||x.autorEmail||"?"}</span><span class="log-text">${x.texto}</span>${x.autorUid===auth.currentUser?.uid?`<span class="log-del" onclick="delComment('${d.id}')">✕</span>`:""}</div>`;
+      const isAuthor=x.autorUid===uid;
+      const edited=x.editado?'<span style="font-size:9px;color:var(--mt);font-style:italic"> (editado)</span>':"";      return `
+      <div class="log-entry" id="le-${d.id}" style="padding:5px 0;border-bottom:1px solid var(--bg);display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;align-items:flex-start;gap:6px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span class="log-author" style="font-size:10px;color:var(--azul2);font-weight:700">${x.autorDisplayName||x.autorEmail||"?"}</span>
+              <span class="log-date" style="font-size:9px;color:var(--mt)">${tsStr(x.createdAt)}</span>
+              ${edited}
+            </div>
+            <div id="lt-${d.id}" style="font-size:12px;color:var(--tx);line-height:1.5">${x.texto}</div>
+          </div>
+          ${isAuthor?`
+          <div class="log-actions" style="display:flex;gap:2px;flex-shrink:0">
+            <button class="log-edit-btn" onclick="openEditComment('${d.id}','${pid}')" title="Editar">✏️</button>
+            <button class="log-del" onclick="delComment('${d.id}')" title="Apagar">🗑</button>
+          </div>`:`
+          <div style="flex-shrink:0;width:44px"></div>`}
+        </div>
+        <div class="log-edit-area" id="lea-${d.id}" style="display:none;gap:4px;margin-top:2px">
+          <input class="log-edit-inp" id="lei-${d.id}" value="${x.texto.replace(/"/g,'&quot;')}"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saveEditComment('${d.id}')}if(event.key==='Escape')cancelEditComment('${d.id}')">
+          <button class="log-edit-save" onclick="saveEditComment('${d.id}')">✓</button>
+          <button class="log-edit-cancel" onclick="cancelEditComment('${d.id}')">✕</button>
+        </div>
+      </div>`;
     }).join("");
-  },()=>{});
+    // scroll to bottom to show latest
+    c.scrollTop=c.scrollHeight;
+  }, err=>{
+    console.warn("Comments listener error:", err.message);
+  });
 }
 window.addComment=async pid=>{
   const inp=$(pid+"-li"),texto=inp.value.trim();if(!texto)return;
@@ -1134,8 +1205,45 @@ window.addComment=async pid=>{
   }catch(e){handleErr(e,"adicionar comentário");}
 };
 window.delComment=async id=>{
-  if(!confirm("Excluir?"))return;
-  try{await deleteDoc(doc(db,"comentarios",id));}catch(e){handleErr(e,"excluir comentário");}
+  if(!confirm("Apagar esta atualização?"))return;
+  try{
+    await deleteDoc(doc(db,"comentarios",id));
+    toast("Atualização apagada.","suc",2000);
+  }catch(e){handleErr(e,"apagar comentário");}
+};
+
+window.openEditComment=(id,pid)=>{
+  // hide text, show edit area
+  const lt=document.getElementById("lt-"+id);
+  const lea=document.getElementById("lea-"+id);
+  const lei=document.getElementById("lei-"+id);
+  if(!lt||!lea||!lei)return;
+  lt.style.display="none";
+  lea.style.display="flex";
+  lei.focus();
+  lei.setSelectionRange(lei.value.length,lei.value.length);
+};
+
+window.cancelEditComment=id=>{
+  const lt=document.getElementById("lt-"+id);
+  const lea=document.getElementById("lea-"+id);
+  if(lt)lt.style.display="";
+  if(lea)lea.style.display="none";
+};
+
+window.saveEditComment=async id=>{
+  const lei=document.getElementById("lei-"+id);
+  if(!lei)return;
+  const novoTexto=lei.value.trim();
+  if(!novoTexto){toast("O texto não pode ficar vazio.","warn");return;}
+  try{
+    await updateDoc(doc(db,"comentarios",id),{
+      texto:novoTexto, editado:true, ...auditU()
+    });
+    await logH("comentarios",id,"editar_comentario",{texto:novoTexto.slice(0,60)});
+    toast("Atualização editada.","suc",2000);
+    cancelEditComment(id);
+  }catch(e){handleErr(e,"editar comentário");}
 };
 
 // ── Delete action ─────────────────────────────────────────────────────────────
@@ -1256,6 +1364,7 @@ window.fE=(el,v)=>{fEv=fEv===v?null:v;document.querySelectorAll(".lb").forEach(b
 window.fP=(el,v)=>{fPv=fPv===v?null:v;if(fPv)el.classList.add("act");else el.classList.remove("act");applyFilters();};
 window.fS=(el,v)=>{fSv=fSv===v?null:v;if(fSv)el.classList.add("act");else el.classList.remove("act");applyFilters();};
 function applyFilters(){
+  const q=(document.getElementById("search-input")?.value||"").toLowerCase().trim();
   document.querySelectorAll(".action-card").forEach(c=>{
     let show=true;
     if(fEv){
@@ -1264,13 +1373,26 @@ function applyFilters(){
     }
     if(fPv&&c.dataset.prazo!==fPv)show=false;
     if(fSv&&(c.querySelector(".status-select")?.value||"nao_iniciado")!==fSv)show=false;
+    if(q){
+      const title=c.querySelector(".card-title")?.innerText||"";
+      const obj=c.querySelector(".card-objetivo")?.innerText||"";
+      const resp=c.querySelector(".kr-rv")?.innerText||"";
+      const obs=c.querySelector("[id^='obs-']")?.value||"";
+      if(![title,obj,resp,obs].some(t=>t.toLowerCase().includes(q)))show=false;
+    }
     c.classList.toggle("hidden",!show);
   });
   document.querySelectorAll(".eixo-section").forEach(s=>{
     s.style.display=s.querySelectorAll(".action-card:not(.hidden)").length>0?"":"none";
   });
 }
-window.showAll=()=>{document.querySelectorAll(".action-card").forEach(c=>c.classList.remove("hidden"));document.querySelectorAll(".lb").forEach(b=>b.classList.remove("act"));fEv=null;fPv=null;fSv=null;document.querySelectorAll(".eixo-section").forEach(s=>s.style.display="");};
+window.showAll=()=>{
+  const si=document.getElementById("search-input"); if(si)si.value="";
+  document.querySelectorAll(".action-card").forEach(c=>c.classList.remove("hidden"));
+  document.querySelectorAll(".lb").forEach(b=>b.classList.remove("act"));
+  fEv=null;fPv=null;fSv=null;
+  document.querySelectorAll(".eixo-section").forEach(s=>s.style.display="");
+};
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
 window.switchTab=(t,el)=>{
@@ -1278,6 +1400,8 @@ window.switchTab=(t,el)=>{
   $("tab-gantt").style.display=t==="gantt"?"block":"none";
   $("tab-hist").style.display=t==="hist"?"block":"none";
   $("tab-eixos").style.display=t==="eixos"?"block":"none";
+  $("tab-backlog").style.display=t==="backlog"?"block":"none";
+  if(t==="backlog")renderBacklog();
   ["ctrl","sh","cards"].forEach(id=>{const e=$("tab-"+id);if(e)e.style.display=t==="actions"?"":"none";});
 };
 
@@ -1431,6 +1555,211 @@ window.submitActionModal=async()=>{
 
 // ── Backup ────────────────────────────────────────────────────────────────────
 window.seedAcoes=seedAcoes;
+
+// ── KR helpers ────────────────────────────────────────────────────────────────
+function buildKRsHTML(p, border){
+  const krs = Array.isArray(p.krs) && p.krs.length > 0
+    ? p.krs
+    : [
+        {num:1, titulo:p.kr1Titulo||"", meta:p.kr1Meta||"", progress:p.kr1Progress||0},
+        {num:2, titulo:p.kr2Titulo||"", meta:p.kr2Meta||"", progress:p.kr2Progress||0},
+      ];
+  return krs.map((kr,i)=>{
+    const num = kr.num || (i+1);
+    const key = `kr_${num}`;
+    return `
+    <div class="kr-row" id="${p.id}-kr-${num}">
+      <div class="kr-top">
+        <span class="kr-num">KR ${num}</span>
+        <span class="kr-title" contenteditable="true" spellcheck="false"
+          data-ph="Resultado-chave ${num}"
+          onblur="saveKRField('${p.id}',${num},'titulo',this.innerText)">${kr.titulo||""}</span>
+        <span class="kr-dl">Meta: <span contenteditable="true" spellcheck="false"
+          onblur="saveKRField('${p.id}',${num},'meta',this.innerText)">${kr.meta||""}</span></span>
+        <span class="kr-rl">Resp.:</span>
+        <span class="kr-rv" contenteditable="true" spellcheck="false"
+          onblur="saveField('${p.id}','responsavel',this.innerText,'editar_responsavel')">${p.responsavel||""}</span>
+        <span class="kr-pct" id="${p.id}-krpct-${num}">${kr.progress||0}%</span>
+        ${num>2?`<button class="kr-remove-btn" onclick="removeKR('${p.id}',${num})" title="Remover KR">✕</button>`:""}
+      </div>
+      <div class="kr-prog-row">
+        <input type="range" min="0" max="100" value="${kr.progress||0}" class="kr-slider"
+          data-id="${p.id}" data-krnum="${num}"
+          oninput="updateKRUIv2(this)" onchange="saveKRv2(this)">
+        <div class="kr-bar-bg"><div class="kr-bar-fill" id="${p.id}-krbar-${num}"
+          style="width:${kr.progress||0}%;background:${border}"></div></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function getKRsFromPlano(p){
+  if(Array.isArray(p.krs) && p.krs.length > 0) return p.krs;
+  const krs=[];
+  if(p.kr1Titulo||p.kr1Progress) krs.push({num:1,titulo:p.kr1Titulo||"",meta:p.kr1Meta||"",progress:p.kr1Progress||0});
+  if(p.kr2Titulo||p.kr2Progress) krs.push({num:2,titulo:p.kr2Titulo||"",meta:p.kr2Meta||"",progress:p.kr2Progress||0});
+  if(krs.length===0) krs.push({num:1,titulo:"",meta:"",progress:0},{num:2,titulo:"",meta:"",progress:0});
+  return krs;
+}
+
+window.updateKRUIv2=el=>{
+  const id=el.dataset.id, num=parseInt(el.dataset.krnum), v=parseInt(el.value);
+  const pct=document.getElementById(`${id}-krpct-${num}`);
+  const bar=document.getElementById(`${id}-krbar-${num}`);
+  if(pct)pct.textContent=v+"%";
+  if(bar)bar.style.width=v+"%";
+  // recalculate overall avg from all KR sliders of this card
+  const sliders=document.querySelectorAll(`.kr-slider[data-id="${id}"]`);
+  const avg=Math.round(Array.from(sliders).reduce((s,el)=>s+parseInt(el.value),0)/sliders.length);
+  const pctEl=document.getElementById(`${id}-pct`);
+  const fillEl=document.getElementById(`${id}-fill`);
+  if(pctEl)pctEl.textContent=avg+"%";
+  if(fillEl)fillEl.style.width=avg+"%";
+};
+
+window.saveKRv2=async el=>{
+  const id=el.dataset.id, num=parseInt(el.dataset.krnum), v=parseInt(el.value);
+  try{
+    const p=allPlanos.find(x=>x.id===id); if(!p)return;
+    const krs=getKRsFromPlano(p).map(k=>k.num===num?{...k,progress:v}:k);
+    await updateDoc(doc(db,"planosDeAcao",id),{krs,...auditU()});
+    await logH("planosDeAcao",id,"editar_kr_progresso",{kr:num,progresso:v});
+  }catch(e){handleErr(e,"salvar KR");}
+};
+
+window.saveKRField=async(id,num,field,value)=>{
+  clearTimeout(saveTimers[id+"krf"+num+field]);
+  saveTimers[id+"krf"+num+field]=setTimeout(async()=>{
+    try{
+      const p=allPlanos.find(x=>x.id===id); if(!p)return;
+      const krs=getKRsFromPlano(p).map(k=>k.num===num?{...k,[field]:value}:k);
+      await updateDoc(doc(db,"planosDeAcao",id),{krs,...auditU()});
+      await logH("planosDeAcao",id,"editar_kr",{kr:num,campo:field});
+    }catch(e){handleErr(e,"salvar campo KR");}
+  },800);
+};
+
+window.addKR=async id=>{
+  try{
+    const p=allPlanos.find(x=>x.id===id); if(!p)return;
+    const krs=getKRsFromPlano(p);
+    const nextNum=(Math.max(...krs.map(k=>k.num||0))||0)+1;
+    krs.push({num:nextNum,titulo:"",meta:"",progress:0});
+    await updateDoc(doc(db,"planosDeAcao",id),{krs,...auditU()});
+    await logH("planosDeAcao",id,"adicionar_kr",{num:nextNum});
+    toast(`KR ${nextNum} adicionado!`,"suc",2000);
+  }catch(e){handleErr(e,"adicionar KR");}
+};
+
+window.removeKR=async(id,num)=>{
+  if(!confirm(`Remover KR ${num}?`))return;
+  try{
+    const p=allPlanos.find(x=>x.id===id); if(!p)return;
+    const krs=getKRsFromPlano(p).filter(k=>k.num!==num);
+    if(krs.length<1){toast("A ação deve ter pelo menos 1 KR.","warn");return;}
+    await updateDoc(doc(db,"planosDeAcao",id),{krs,...auditU()});
+    await logH("planosDeAcao",id,"remover_kr",{num});
+    toast(`KR ${num} removido.`,"suc",2000);
+  }catch(e){handleErr(e,"remover KR");}
+};
+
+// ── Archive / Backlog ─────────────────────────────────────────────────────────
+window.archiveAction=async id=>{
+  if(!confirm("Arquivar esta ação no backlog? Ela poderá ser retomada a qualquer momento."))return;
+  try{
+    await updateDoc(doc(db,"planosDeAcao",id),{arquivada:true,...auditU()});
+    await logH("planosDeAcao",id,"arquivar");
+    toast("Ação arquivada no backlog.","suc");
+  }catch(e){handleErr(e,"arquivar ação");}
+};
+
+window.restoreAction=async id=>{
+  try{
+    await updateDoc(doc(db,"planosDeAcao",id),{arquivada:false,...auditU()});
+    await logH("planosDeAcao",id,"retomar");
+    toast("Ação retomada!","suc");
+  }catch(e){handleErr(e,"retomar ação");}
+};
+
+function renderBacklog(){
+  const archived=allPlanos.filter(p=>p.arquivada===true);
+  document.getElementById("backlog-count").textContent=archived.length;
+  const c=document.getElementById("backlog-content");
+  if(!c)return;
+  if(archived.length===0){
+    c.innerHTML=`<div class="hist-empty">Nenhuma ação arquivada. Use o botão 📦 nos cards para mover ações para o backlog.</div>`;
+    return;
+  }
+  c.innerHTML=archived.map(p=>{
+    const eixo=allEixos.find(e=>e.id===p.eixo)||{cor:"#9E9E9E",nome:"Sem Eixo"};
+    const krs=getKRsFromPlano(p);
+    const avg=Math.round(krs.reduce((s,k)=>s+(k.progress||0),0)/krs.length);
+    return `
+    <div class="backlog-card" style="border-left-color:${p.borderColor||eixo.cor}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px">
+        <div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px">
+            <span class="badge" style="background:${hexToBg(eixo.cor)};color:${eixo.cor}">${eixo.nome}</span>
+            <span class="badge" style="background:#F0F4FA;color:#6B7BA4">📦 Arquivada</span>
+            ${p.prazo?`<span class="badge" style="background:${({curto:'#E8F7E7',medio:'#FDF3E3',longo:'#FDE8F3'}[p.prazo]||'#EEF2FB')};color:${({curto:'#3AAA35',medio:'#F5A623',longo:'#E91E8C'}[p.prazo]||'#003087')}">${({curto:'Curto',medio:'Médio',longo:'Longo'}[p.prazo]||p.prazo)}</span>`:''}
+          </div>
+          <div style="font-size:14px;font-weight:600;color:var(--tx);margin-bottom:3px">${p.titulo||"Sem título"}</div>
+          <div style="font-size:12px;color:#3A4D7A;line-height:1.5">${p.objetivo||""}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;margin-top:2px">
+          <button class="backlog-restore-btn" onclick="restoreAction('${p.id}')">↩ Retomar</button>
+          <button class="backlog-del-btn" onclick="deleteAction('${p.id}')">🗑</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--bd)">
+        <span style="font-size:11px;color:var(--mt)">${krs.length} KR${krs.length!==1?'s':''}</span>
+        <div style="flex:1;height:5px;background:var(--bd);border-radius:4px;overflow:hidden">
+          <div style="height:100%;width:${avg}%;background:${p.borderColor||eixo.cor};border-radius:4px"></div>
+        </div>
+        <span style="font-family:Montserrat,sans-serif;font-size:12px;font-weight:800;color:var(--azul)">${avg}%</span>
+        <span style="font-size:11px;color:var(--mt)">${p.responsavel||""}</span>
+        <span style="font-size:11px;color:var(--mt)">${p.inicio||""} → ${p.fim||""}</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── Observer field ────────────────────────────────────────────────────────────
+const DEFAULT_OBSERVERS = ["Bruno","Rafaela","Liana"];
+
+function getObserverOptions(){
+  const fromPlanos = allPlanos
+    .map(p=>p.observador).filter(Boolean)
+    .filter(o=>!DEFAULT_OBSERVERS.includes(o));
+  return [...DEFAULT_OBSERVERS, ...new Set(fromPlanos)];
+}
+
+function buildObserverOptions(current){
+  const opts = getObserverOptions();
+  const options = ['<option value="">— Nenhum —</option>']
+    .concat(opts.map(o=>`<option value="${o}" ${current===o?"selected":""}>${o}</option>`))
+    .concat([`<option value="__new">+ Outro (adicionar novo)</option>`]);
+  return options.join("");
+}
+
+window.saveObserver=async(id,val)=>{
+  if(val==="__new"){
+    const novo=prompt("Nome do observador:");
+    if(!novo||!novo.trim())return;
+    const v=novo.trim();
+    try{
+      await updateDoc(doc(db,"planosDeAcao",id),{observador:v,...auditU()});
+      await logH("planosDeAcao",id,"editar_observador",{observador:v});
+      toast(`Observador definido: ${v}`,"suc",2000);
+    }catch(e){handleErr(e,"salvar observador");}
+    return;
+  }
+  try{
+    await updateDoc(doc(db,"planosDeAcao",id),{observador:val,...auditU()});
+    if(val) toast(`Observador: ${val}`,"suc",2000);
+  }catch(e){handleErr(e,"salvar observador");}
+};
+
 window.exportBackup=()=>{
   const payload={versao:"3.0",exportadoEm:new Date().toISOString(),exportadoPor:auth.currentUser?.email,planos:allPlanos,eixos:allEixos};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});

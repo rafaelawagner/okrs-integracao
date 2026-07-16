@@ -196,17 +196,28 @@ header{background:var(--azul);color:#fff;overflow:hidden}
 .ap-bg{height:5px;background:var(--bg);border-radius:4px;overflow:hidden;width:80px;flex-shrink:0}
 .ap-fill{height:100%;border-radius:4px;transition:width .3s}
 .ap-pct{font-family:'Montserrat',sans-serif;font-size:11px;font-weight:800;color:var(--azul);margin-left:auto}
-.log-entries{max-height:80px;overflow-y:auto;margin-bottom:5px}
+.log-entries{max-height:160px;overflow-y:auto;margin-bottom:6px;display:flex;flex-direction:column;gap:1px}
 .log-entry{font-size:11px;color:var(--tx);padding:3px 0;border-bottom:1px solid var(--bg);display:flex;gap:6px;align-items:flex-start}
 .log-date{font-size:10px;color:var(--mt);flex-shrink:0;font-weight:600}
 .log-author{font-size:10px;color:var(--azul2);font-weight:600;flex-shrink:0}
 .log-text{flex:1;line-height:1.4}
-.log-del{color:#ccc;cursor:pointer;font-size:11px;flex-shrink:0}.log-del:hover{color:var(--err)}
+.log-del{color:#ccc;cursor:pointer;font-size:11px;flex-shrink:0;padding:1px 3px;border-radius:3px;border:none;background:none}.log-del:hover{color:var(--err);background:#FEE2E2}
+.log-edit-btn{color:#ccc;cursor:pointer;font-size:11px;flex-shrink:0;padding:1px 3px;border-radius:3px;border:none;background:none}.log-edit-btn:hover{color:var(--azul);background:#EEF2FB}
+.log-actions{display:flex;gap:2px;flex-shrink:0;opacity:0;transition:opacity .15s}
+.log-entry:hover .log-actions{opacity:1}
 .log-row{display:flex;gap:5px}
 .log-inp{flex:1;border:1.5px solid var(--bd);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;color:var(--tx)}
 .log-inp:focus{outline:none;border-color:var(--azul)}
 .log-btn{background:var(--azul);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .log-btn:hover{opacity:.85}
+.log-edit-area{display:none;margin-top:4px;gap:4px}
+.log-edit-area.open{display:flex}
+.log-edit-inp{flex:1;border:1.5px solid var(--azul);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;color:var(--tx)}
+.log-edit-inp:focus{outline:none}
+.log-edit-save{background:var(--azul);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer}
+.log-edit-cancel{background:none;color:var(--mt);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer}
+.log-entry{position:relative}
+.log-empty{font-size:11px;color:var(--mt);font-style:italic;padding:4px 0}
 
 /* GANTT */
 .gp{padding:16px 32px 40px}
@@ -1086,7 +1097,7 @@ function renderCard(p,e){
           ${buildObserverOptions(p.observador)}
         </select>
       </div>
-      <div class="log-entries" id="${p.id}-log"></div>
+      <div class="log-entries" id="${p.id}-log"><div class="log-empty">Carregando atualizações...</div></div>
       <div class="log-row">
         <input type="text" class="log-inp" id="${p.id}-li" placeholder="Registrar atualização..." onkeydown="if(event.key==='Enter')addComment('${p.id}')">
         <button class="log-btn" onclick="addComment('${p.id}')">+ Registrar</button>
@@ -1139,14 +1150,50 @@ window.saveStatus=async sel=>{
 // ── Comments ──────────────────────────────────────────────────────────────────
 function loadComments(pid){
   if(commentUnsubs[pid])return;
-  const q=query(collection(db,"comentarios"),where("planoId","==",pid),orderBy("createdAt","desc"),limit(20));
+  const q=query(collection(db,"comentarios"),where("planoId","==",pid),orderBy("createdAt","asc"),limit(50));
   commentUnsubs[pid]=onSnapshot(q,snap=>{
-    const c=$(pid+"-log"); if(!c)return;
+    // retry if container not yet in DOM
+    const c=document.getElementById(pid+"-log");
+    if(!c){ setTimeout(()=>loadComments(pid), 400); commentUnsubs[pid]=null; return; }
+    const uid=auth.currentUser?.uid;
+    if(snap.empty){
+      c.innerHTML='<div class="log-empty">Nenhuma atualização ainda.</div>';
+      return;
+    }
     c.innerHTML=snap.docs.map(d=>{
       const x=d.data();
-      return `<div class="log-entry"><span class="log-date">${tsStr(x.createdAt)}</span><span class="log-author">${x.autorDisplayName||x.autorEmail||"?"}</span><span class="log-text">${x.texto}</span>${x.autorUid===auth.currentUser?.uid?`<span class="log-del" onclick="delComment('${d.id}')">✕</span>`:""}</div>`;
+      const isAuthor=x.autorUid===uid;
+      const edited=x.editado?'<span style="font-size:9px;color:var(--mt);font-style:italic"> (editado)</span>':"";      return `
+      <div class="log-entry" id="le-${d.id}" style="padding:5px 0;border-bottom:1px solid var(--bg);display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;align-items:flex-start;gap:6px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span class="log-author" style="font-size:10px;color:var(--azul2);font-weight:700">${x.autorDisplayName||x.autorEmail||"?"}</span>
+              <span class="log-date" style="font-size:9px;color:var(--mt)">${tsStr(x.createdAt)}</span>
+              ${edited}
+            </div>
+            <div id="lt-${d.id}" style="font-size:12px;color:var(--tx);line-height:1.5">${x.texto}</div>
+          </div>
+          ${isAuthor?`
+          <div class="log-actions" style="display:flex;gap:2px;flex-shrink:0">
+            <button class="log-edit-btn" onclick="openEditComment('${d.id}','${pid}')" title="Editar">✏️</button>
+            <button class="log-del" onclick="delComment('${d.id}')" title="Apagar">🗑</button>
+          </div>`:`
+          <div style="flex-shrink:0;width:44px"></div>`}
+        </div>
+        <div class="log-edit-area" id="lea-${d.id}" style="display:none;gap:4px;margin-top:2px">
+          <input class="log-edit-inp" id="lei-${d.id}" value="${x.texto.replace(/"/g,'&quot;')}"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saveEditComment('${d.id}')}if(event.key==='Escape')cancelEditComment('${d.id}')">
+          <button class="log-edit-save" onclick="saveEditComment('${d.id}')">✓</button>
+          <button class="log-edit-cancel" onclick="cancelEditComment('${d.id}')">✕</button>
+        </div>
+      </div>`;
     }).join("");
-  },()=>{});
+    // scroll to bottom to show latest
+    c.scrollTop=c.scrollHeight;
+  }, err=>{
+    console.warn("Comments listener error:", err.message);
+  });
 }
 window.addComment=async pid=>{
   const inp=$(pid+"-li"),texto=inp.value.trim();if(!texto)return;
@@ -1158,8 +1205,45 @@ window.addComment=async pid=>{
   }catch(e){handleErr(e,"adicionar comentário");}
 };
 window.delComment=async id=>{
-  if(!confirm("Excluir?"))return;
-  try{await deleteDoc(doc(db,"comentarios",id));}catch(e){handleErr(e,"excluir comentário");}
+  if(!confirm("Apagar esta atualização?"))return;
+  try{
+    await deleteDoc(doc(db,"comentarios",id));
+    toast("Atualização apagada.","suc",2000);
+  }catch(e){handleErr(e,"apagar comentário");}
+};
+
+window.openEditComment=(id,pid)=>{
+  // hide text, show edit area
+  const lt=document.getElementById("lt-"+id);
+  const lea=document.getElementById("lea-"+id);
+  const lei=document.getElementById("lei-"+id);
+  if(!lt||!lea||!lei)return;
+  lt.style.display="none";
+  lea.style.display="flex";
+  lei.focus();
+  lei.setSelectionRange(lei.value.length,lei.value.length);
+};
+
+window.cancelEditComment=id=>{
+  const lt=document.getElementById("lt-"+id);
+  const lea=document.getElementById("lea-"+id);
+  if(lt)lt.style.display="";
+  if(lea)lea.style.display="none";
+};
+
+window.saveEditComment=async id=>{
+  const lei=document.getElementById("lei-"+id);
+  if(!lei)return;
+  const novoTexto=lei.value.trim();
+  if(!novoTexto){toast("O texto não pode ficar vazio.","warn");return;}
+  try{
+    await updateDoc(doc(db,"comentarios",id),{
+      texto:novoTexto, editado:true, ...auditU()
+    });
+    await logH("comentarios",id,"editar_comentario",{texto:novoTexto.slice(0,60)});
+    toast("Atualização editada.","suc",2000);
+    cancelEditComment(id);
+  }catch(e){handleErr(e,"editar comentário");}
 };
 
 // ── Delete action ─────────────────────────────────────────────────────────────
