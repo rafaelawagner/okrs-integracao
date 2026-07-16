@@ -764,6 +764,16 @@ document.addEventListener("DOMContentLoaded", ()=>{
   });
 });
 
+// ── Global aliases for HTML event handlers ───────────────────────────────────
+window.doLogout = async()=>{
+  if(!confirm("Sair do painel?"))return;
+  unsubAll();
+  try{ await signOut(auth); }catch(e){ console.error(e); }
+};
+
+// fE is also called as window.fE from filter badges rendered in JS
+// already defined as window.fE above but ensure it's accessible
+
 $("user-chip").onclick = ()=>$("umenu").classList.toggle("open");
 document.addEventListener("click",e=>{if(!e.target.closest("#user-chip")&&!e.target.closest("#umenu"))$("umenu").classList.remove("open");});
 
