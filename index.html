@@ -1564,20 +1564,38 @@ window.fP=(el,v)=>{fPv=fPv===v?null:v;if(fPv)el.classList.add("act");else el.cla
 window.fS=(el,v)=>{fSv=fSv===v?null:v;if(fSv)el.classList.add("act");else el.classList.remove("act");applyFilters();};
 function applyFilters(){
   const q=(document.getElementById("search-input")?.value||"").toLowerCase().trim();
+
   document.querySelectorAll(".action-card").forEach(c=>{
+    const p=allPlanos.find(x=>x.id===c.id);
     let show=true;
+
+    // eixo filter
     if(fEv){
-      const cardEixos=(c.dataset.eixos?c.dataset.eixos.split(","):[c.dataset.eixo]);
+      const cardEixos=c.dataset.eixos?c.dataset.eixos.split(","):[c.dataset.eixo];
       if(!cardEixos.includes(fEv))show=false;
     }
+    // prazo filter
     if(fPv&&c.dataset.prazo!==fPv)show=false;
+    // status filter
     if(fSv&&(c.querySelector(".status-select")?.value||"nao_iniciado")!==fSv)show=false;
-    if(q){
-      const title=c.querySelector(".card-title")?.innerText||"";
-      const obj=c.querySelector(".card-objetivo")?.innerText||"";
-      const resp=c.querySelector(".kr-rv")?.innerText||"";
-      const obs=c.querySelector("[id^='obs-']")?.value||"";
-      if(![title,obj,resp,obs].some(t=>t.toLowerCase().includes(q)))show=false;
+
+    // text search — uses allPlanos data (reliable, not DOM-dependent)
+    if(q&&show){
+      if(p){
+        const krs=getKRsFromPlano(p);
+        const krText=krs.map(k=>(k.titulo||"")+" "+(k.meta||"")).join(" ");
+        const haystack=[
+          p.titulo||"",
+          p.objetivo||"",
+          p.responsavel||"",
+          p.observador||"",
+          krText,
+          allEixos.find(e=>e.id===p.eixo)?.nome||""
+        ].join(" ").toLowerCase();
+        if(!haystack.includes(q))show=false;
+      } else {
+        if(!(c.textContent||"").toLowerCase().includes(q))show=false;
+      }
     }
     c.classList.toggle("hidden",!show);
   });
