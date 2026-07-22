@@ -226,42 +226,48 @@ header{background:var(--azul);color:#fff;overflow:hidden}
 .log-entry{position:relative}
 .log-empty{font-size:11px;color:var(--mt);font-style:italic;padding:4px 0}
 
-/* ── PDCA subações ── */
+/* ── PDCA subações (tabela) ── */
 .pdca-section{border-top:1px solid var(--bd);padding-top:10px;margin-top:2px}
-.pdca-header{display:flex;align-items:center;gap:6px;margin-bottom:6px;cursor:pointer;user-select:none}
+.pdca-header{display:flex;align-items:center;gap:6px;margin-bottom:8px;cursor:pointer;user-select:none}
 .pdca-header:hover .pdca-title{color:var(--azul)}
 .pdca-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--mt);transition:color .15s}
 .pdca-count{font-size:10px;font-weight:700;color:var(--azul);background:#EEF2FB;padding:1px 7px;border-radius:10px}
 .pdca-toggle{font-size:11px;color:var(--mt);transition:transform .2s;display:inline-block}
-.pdca-toggle.open{transform:rotate(0deg)}
 .pdca-body{display:none}
 .pdca-body.open{display:block}
-.pdca-add-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--azul);background:transparent;border:1.5px dashed var(--bd);border-radius:6px;padding:3px 9px;cursor:pointer;margin-top:6px;transition:all .15s}
+.pdca-add-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--azul);background:transparent;border:1.5px dashed var(--bd);border-radius:6px;padding:3px 9px;cursor:pointer;margin-top:7px;transition:all .15s}
 .pdca-add-btn:hover{border-color:var(--azul);background:#EEF2FB}
-.subacao-row{display:flex;align-items:center;gap:7px;padding:6px 8px;border-radius:8px;background:var(--bg);margin-bottom:5px;border:1px solid var(--bd);transition:box-shadow .15s}
-.subacao-row:hover{box-shadow:0 2px 8px rgba(0,30,87,.07)}
-.pdca-tag{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-size:10px;font-weight:800;flex-shrink:0}
+/* Tabela de subações */
+.subacao-table{width:100%;border-collapse:collapse;font-size:12px}
+.subacao-table th{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--mt);padding:5px 8px;text-align:left;border-bottom:1.5px solid var(--bd);white-space:nowrap;background:var(--bg)}
+.subacao-table th:first-child{border-radius:6px 0 0 0}
+.subacao-table th:last-child{border-radius:0 6px 0 0;text-align:center}
+.subacao-table td{padding:5px 8px;border-bottom:1px solid var(--bg);vertical-align:middle}
+.subacao-table tr:last-child td{border-bottom:none}
+.subacao-table tr:hover td{background:var(--bg)}
+.subacao-table td[contenteditable]{outline:none;cursor:text;min-width:40px;border-radius:4px;transition:background .15s}
+.subacao-table td[contenteditable]:focus{background:#EEF2FB;outline:2px dashed var(--azul);outline-offset:1px}
+.subacao-table td[contenteditable]:empty:before{content:attr(data-ph);color:#bbb;font-style:italic}
+.pdca-tag{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;font-size:10px;font-weight:800;cursor:pointer;flex-shrink:0;border:none;transition:all .15s}
+.pdca-tag:hover{opacity:.8;transform:scale(1.1)}
 .pdca-tag.P{background:#E3EDFD;color:#1565C0}
 .pdca-tag.D{background:#E8F7E7;color:#2E7D32}
 .pdca-tag.C{background:#FFF8E1;color:#C8970A}
 .pdca-tag.A{background:#FDE8F3;color:#AD1457}
-.subacao-titulo{font-size:12px;font-weight:600;color:var(--tx);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.subacao-resp{font-size:10px;color:var(--mt);flex-shrink:0;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.subacao-prazo{font-size:10px;color:var(--mt);flex-shrink:0}
-.subacao-status{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;flex-shrink:0;cursor:pointer;border:none;transition:all .15s}
-.subacao-status.nao_iniciado{background:#F0F4FA;color:#6B7BA4}
-.subacao-status.em_andamento{background:#FDF3E3;color:#F5A623}
-.subacao-status.concluido{background:#E8F7E7;color:#2E7D32}
-.subacao-del{background:none;border:none;cursor:pointer;font-size:12px;color:#ddd;padding:1px 3px;border-radius:3px;flex-shrink:0;transition:all .15s}
+.subacao-status-sel{border:1.5px solid var(--bd);border-radius:6px;padding:2px 6px;font-size:11px;font-weight:600;background:var(--sf);cursor:pointer;transition:all .15s}
+.subacao-status-sel.nao_iniciado{background:#F0F4FA;color:#6B7BA4;border-color:transparent}
+.subacao-status-sel.em_andamento{background:#FDF3E3;color:#F5A623;border-color:transparent}
+.subacao-status-sel.concluido{background:#E8F7E7;color:#2E7D32;border-color:transparent}
+.subacao-del{background:none;border:none;cursor:pointer;font-size:13px;color:#ddd;padding:2px 4px;border-radius:4px;transition:all .15s}
 .subacao-del:hover{color:var(--err);background:#FEE2E2}
 /* PDCA modal */
 .pdca-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .pdca-modal-overlay.open{opacity:1;pointer-events:all}
-.pdca-modal{background:#fff;border-radius:14px;padding:24px 28px;width:520px;max-width:95vw;box-shadow:0 16px 48px rgba(0,30,87,.18);transform:translateY(16px);transition:transform .2s}
+.pdca-modal{background:#fff;border-radius:14px;padding:24px 28px;width:480px;max-width:95vw;box-shadow:0 16px 48px rgba(0,30,87,.18);transform:translateY(16px);transition:transform .2s}
 .pdca-modal-overlay.open .pdca-modal{transform:translateY(0)}
 .pdca-modal h3{font-family:Montserrat,sans-serif;font-size:16px;font-weight:800;color:var(--azul);margin-bottom:16px}
 .pdca-fase-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
-.pdca-fase-opt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border:2px solid var(--bd);border-radius:9px;cursor:pointer;transition:all .15s;text-align:center}
+.pdca-fase-opt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border:2px solid var(--bd);border-radius:9px;cursor:pointer;transition:all .15s;text-align:center;user-select:none}
 .pdca-fase-opt:hover{border-color:var(--azul)}
 .pdca-fase-opt.sel{border-color:currentColor}
 .pdca-fase-opt .fase-letter{font-family:Montserrat,sans-serif;font-size:18px;font-weight:900;pointer-events:none}
@@ -1899,52 +1905,78 @@ window.seedAcoes=seedAcoes;
 const pdcaUnsubs={};
 let pdcaTargetPlanoId=null;
 
-// Load subações for a card via Firestore realtime
+// Load subações for a card via Firestore realtime — renders as editable table
 function loadSubacoes(pid){
   if(pdcaUnsubs[pid])return;
-  const q=query(
-    collection(db,"subacoes"),
-    where("planoId","==",pid),
-    limit(50)
-  );
+  const q=query(collection(db,"subacoes"),where("planoId","==",pid),limit(50));
   pdcaUnsubs[pid]=onSnapshot(q,snap=>{
     const list=document.getElementById(pid+"-pdca-list");
     const countEl=document.getElementById(pid+"-pdca-count");
-    if(!list){ 
-      try{pdcaUnsubs[pid]();}catch(e){}
-      delete pdcaUnsubs[pid];
-      return;
+    if(!list){
+      try{pdcaUnsubs[pid]();}catch(e){} delete pdcaUnsubs[pid]; return;
     }
-    // sort: P→D→C→A then by createdAt
     const order={P:0,D:1,C:2,A:3};
     const docs=[...snap.docs].sort((a,b)=>{
-      const fa=order[a.data().fase]??4, fb=order[b.data().fase]??4;
+      const fa=order[a.data().fase]??4,fb=order[b.data().fase]??4;
       if(fa!==fb)return fa-fb;
       return (a.data().createdAt?.toMillis?.()||0)-(b.data().createdAt?.toMillis?.()||0);
     });
-    if(countEl) countEl.textContent=docs.length;
+    if(countEl)countEl.textContent=docs.length;
     if(docs.length===0){
-      list.innerHTML='<div style="font-size:11px;color:var(--mt);font-style:italic;padding:4px 0">Nenhuma subação ainda. Clique em ＋ Subação para adicionar.</div>';
+      list.innerHTML='<p style="font-size:11px;color:var(--mt);font-style:italic;padding:6px 2px">Nenhuma subação ainda. Clique em ＋ Subação para adicionar.</p>';
       return;
     }
-    const statusLabel={nao_iniciado:"Não iniciado",em_andamento:"Em andamento",concluido:"Concluído"};
-    const statusNext={nao_iniciado:"em_andamento",em_andamento:"concluido",concluido:"nao_iniciado"};
-    list.innerHTML=docs.map(d=>{
-      const s=d.data();
-      return `
-      <div class="subacao-row" id="sr-${d.id}">
-        <span class="pdca-tag ${s.fase||"P"}">${s.fase||"P"}</span>
-        <span class="subacao-titulo" title="${s.titulo||""}">${s.titulo||""}</span>
-        <span class="subacao-resp">${s.responsavel||""}</span>
-        <span class="subacao-prazo">${s.prazo||""}</span>
-        <button class="subacao-status ${s.status||"nao_iniciado"}"
-          onclick="cycleSubacaoStatus('${d.id}','${s.status||"nao_iniciado"}')"
-          title="Clique para avançar o status">
-          ${s.status==="concluido"?"✓ ":""}${statusLabel[s.status||"nao_iniciado"]}
-        </button>
-        <button class="subacao-del" onclick="deleteSubacao('${d.id}')" title="Remover">🗑</button>
-      </div>`;
-    }).join("");
+    const statusOpts={
+      nao_iniciado:'<option value="nao_iniciado" selected>Não iniciado</option><option value="em_andamento">Em andamento</option><option value="concluido">Concluído ✓</option>',
+      em_andamento:'<option value="nao_iniciado">Não iniciado</option><option value="em_andamento" selected>Em andamento</option><option value="concluido">Concluído ✓</option>',
+      concluido:'<option value="nao_iniciado">Não iniciado</option><option value="em_andamento">Em andamento</option><option value="concluido" selected>Concluído ✓</option>'
+    };
+    const faseOrder={P:0,D:1,C:2,A:3};
+    const nextFase={P:"D",D:"C",C:"A",A:"P"};
+    list.innerHTML=`
+      <table class="subacao-table">
+        <thead>
+          <tr>
+            <th style="width:34px">Fase</th>
+            <th>Descrição</th>
+            <th style="width:100px">Responsável</th>
+            <th style="width:80px">Prazo</th>
+            <th style="width:130px">Status</th>
+            <th style="width:32px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${docs.map(d=>{
+            const s=d.data();
+            const st=s.status||"nao_iniciado";
+            const fase=s.fase||"P";
+            return `<tr id="sr-${d.id}">
+              <td style="text-align:center">
+                <button class="pdca-tag ${fase}" title="Clique para trocar a fase (${fase}→${nextFase[fase]})"
+                  onclick="cycleSubacaoFase('${d.id}','${fase}')">${fase}</button>
+              </td>
+              <td contenteditable="true" spellcheck="false" data-ph="Descreva a subação..."
+                onblur="saveSubacaoField('${d.id}','titulo',this.innerText)"
+                >${s.titulo||""}</td>
+              <td contenteditable="true" spellcheck="false" data-ph="Responsável"
+                onblur="saveSubacaoField('${d.id}','responsavel',this.innerText)"
+                >${s.responsavel||""}</td>
+              <td contenteditable="true" spellcheck="false" data-ph="Ex: Out/2026"
+                onblur="saveSubacaoField('${d.id}','prazo',this.innerText)"
+                >${s.prazo||""}</td>
+              <td>
+                <select class="subacao-status-sel ${st}" data-id="${d.id}"
+                  onchange="saveSubacaoStatus(this)">
+                  ${statusOpts[st]||statusOpts.nao_iniciado}
+                </select>
+              </td>
+              <td style="text-align:center">
+                <button class="subacao-del" onclick="deleteSubacao('${d.id}')" title="Remover subação">🗑</button>
+              </td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>`;
   }, err=>{
     console.warn("Subações listener error:", err.message);
   });
@@ -2017,10 +2049,31 @@ window.savePDCASubacao=async()=>{
 
 window.cycleSubacaoStatus=async(id,current)=>{
   const next={nao_iniciado:"em_andamento",em_andamento:"concluido",concluido:"nao_iniciado"};
-  const newStatus=next[current]||"nao_iniciado";
-  try{
-    await updateDoc(doc(db,"subacoes",id),{status:newStatus,...auditU()});
-  }catch(e){handleErr(e,"atualizar status da subação");}
+  try{ await updateDoc(doc(db,"subacoes",id),{status:next[current]||"nao_iniciado",...auditU()}); }
+  catch(e){handleErr(e,"atualizar status");}
+};
+
+window.saveSubacaoStatus=async sel=>{
+  const id=sel.dataset.id, val=sel.value;
+  sel.className="subacao-status-sel "+val;
+  try{ await updateDoc(doc(db,"subacoes",id),{status:val,...auditU()}); }
+  catch(e){handleErr(e,"salvar status da subação");}
+};
+
+const subSaveTimers={};
+window.saveSubacaoField=async(id,field,value)=>{
+  clearTimeout(subSaveTimers[id+field]);
+  subSaveTimers[id+field]=setTimeout(async()=>{
+    try{ await updateDoc(doc(db,"subacoes",id),{[field]:value.trim(),...auditU()}); }
+    catch(e){handleErr(e,"salvar campo da subação");}
+  },700);
+};
+
+window.cycleSubacaoFase=async(id,current)=>{
+  const next={P:"D",D:"C",C:"A",A:"P"};
+  const newFase=next[current]||"P";
+  try{ await updateDoc(doc(db,"subacoes",id),{fase:newFase,...auditU()}); }
+  catch(e){handleErr(e,"trocar fase");}
 };
 
 window.deleteSubacao=async id=>{
