@@ -264,8 +264,8 @@ header{background:var(--azul);color:#fff;overflow:hidden}
 .pdca-fase-opt{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border:2px solid var(--bd);border-radius:9px;cursor:pointer;transition:all .15s;text-align:center}
 .pdca-fase-opt:hover{border-color:var(--azul)}
 .pdca-fase-opt.sel{border-color:currentColor}
-.pdca-fase-opt .fase-letter{font-family:Montserrat,sans-serif;font-size:18px;font-weight:900}
-.pdca-fase-opt .fase-name{font-size:10px;font-weight:600;color:var(--mt)}
+.pdca-fase-opt .fase-letter{font-family:Montserrat,sans-serif;font-size:18px;font-weight:900;pointer-events:none}
+.pdca-fase-opt .fase-name{font-size:10px;font-weight:600;color:var(--mt);pointer-events:none}
 .pdca-fase-opt.P{color:#1565C0}.pdca-fase-opt.P.sel{background:#E3EDFD}
 .pdca-fase-opt.D{color:#2E7D32}.pdca-fase-opt.D.sel{background:#E8F7E7}
 .pdca-fase-opt.C{color:#C8970A}.pdca-fase-opt.C.sel{background:#FFF8E1}
@@ -599,16 +599,16 @@ body.presenting .status-select option:not(:checked){display:none}
     <div style="margin-bottom:12px">
       <div class="form-label" style="margin-bottom:8px">Fase do PDCA</div>
       <div class="pdca-fase-grid">
-        <div class="pdca-fase-opt P sel" data-fase="P" onclick="selPDCAFase(this)">
+        <div class="pdca-fase-opt P sel" data-fase="P" onclick="selPDCAFase(event.currentTarget||this)">
           <span class="fase-letter">P</span><span class="fase-name">Plan</span>
         </div>
-        <div class="pdca-fase-opt D" data-fase="D" onclick="selPDCAFase(this)">
+        <div class="pdca-fase-opt D" data-fase="D" onclick="selPDCAFase(event.currentTarget||this)">
           <span class="fase-letter">D</span><span class="fase-name">Do</span>
         </div>
-        <div class="pdca-fase-opt C" data-fase="C" onclick="selPDCAFase(this)">
+        <div class="pdca-fase-opt C" data-fase="C" onclick="selPDCAFase(event.currentTarget||this)">
           <span class="fase-letter">C</span><span class="fase-name">Check</span>
         </div>
-        <div class="pdca-fase-opt A" data-fase="A" onclick="selPDCAFase(this)">
+        <div class="pdca-fase-opt A" data-fase="A" onclick="selPDCAFase(event.currentTarget||this)">
           <span class="fase-letter">A</span><span class="fase-name">Act</span>
         </div>
       </div>
@@ -1981,14 +1981,18 @@ window.closePDCAModal=()=>{
 };
 
 window.selPDCAFase=el=>{
+  // handle click on child span — find the parent pdca-fase-opt
+  const opt=el.closest ? el.closest(".pdca-fase-opt") : el;
+  if(!opt)return;
   document.querySelectorAll(".pdca-fase-opt").forEach(o=>o.classList.remove("sel"));
-  el.classList.add("sel");
+  opt.classList.add("sel");
 };
 
 window.savePDCASubacao=async()=>{
   const titulo=document.getElementById("pdca-titulo").value.trim();
   if(!titulo){toast("Insira a descrição da subação.","warn");return;}
-  const fase=document.querySelector(".pdca-fase-opt.sel")?.dataset.fase||"P";
+  const faseEl=document.querySelector("#pdca-modal-overlay .pdca-fase-opt.sel");
+  const fase=faseEl?.dataset.fase||"P";
   const resp=document.getElementById("pdca-resp").value.trim();
   const prazo=document.getElementById("pdca-prazo").value.trim();
   try{
