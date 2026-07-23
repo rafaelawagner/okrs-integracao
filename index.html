@@ -381,7 +381,131 @@ body.presenting .status-select option:not(:checked){display:none}
   .form-grid{grid-template-columns:1fr}
   .tb,.ctrl,.cc,.sh,.dash,.tabs,.gp,.hist-list,.eixos-panel{padding-left:14px;padding-right:14px}
 }
-@media print{body{background:#fff}.tb,.ctrl,.action-footer,.modal-overlay,#sync-bar{display:none}.action-card{break-inside:avoid}}
+@media print{
+  /* ── A4 Page setup ── */
+  @page{size:A4;margin:16mm 14mm 16mm 14mm}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body{background:#fff;font-size:11px;color:#0D1B3E}
+
+  /* ── Hide UI elements ── */
+  .tb,.ctrl,.tabs,.modal-overlay,.pdca-modal-overlay,
+  #sync-bar,#loading-overlay,#toast-area,
+  .sh-btns,.add-here-btn,.del-eixo-btn,
+  .card-arch-btn,.card-del-btn,.saving-ind,
+  .log-row,.subacao-del,.pdca-add-btn,
+  .kr-drag-handle,.add-kr-btn,
+  .log-section-header,.log-entries,
+  .pdca-section,.pdca-header,.pdca-body,
+  #tab-gantt,#tab-hist,#tab-eixos,#tab-backlog,
+  #seed-banner,#flat-sorted-section,
+  .umenu,.user-chip,
+  [id^="obs-"]{display:none!important}
+
+  /* ── Header ── */
+  header{background:#003087!important;color:#fff!important;border-radius:0;page-break-inside:avoid}
+  .hi{min-height:auto}
+  .hl{padding:12px 16px;min-width:160px}
+  .hl img{width:140px}
+  .hc{padding:14px 20px}
+  .htitle{font-size:16px}
+  .hstats{gap:12px}
+  .hst .sv{font-size:14px}
+  .cstripe{height:3px}
+
+  /* ── Dashboard ── */
+  .dash{padding:10px 14px 0;grid-template-columns:150px 1fr 1fr 1fr;gap:8px}
+  .dgauge,.dc{border:1px solid #D8E2F0;border-radius:8px;padding:10px}
+  .gsvg{width:80px;height:80px}
+  .dct{font-size:8px;margin-bottom:6px}
+  .scnt{font-size:14px}
+  .snm{font-size:10px}
+  .ebl{font-size:10px}
+  .ebf{-webkit-print-color-adjust:exact}
+
+  /* ── Section header ── */
+  .sh{padding:10px 14px 4px}
+  .sh h2{font-size:12px}
+
+  /* ── Cards container ── */
+  .cc{padding:4px 14px 0}
+
+  /* ── Eixo header ── */
+  .eixo-hdr{padding:8px 0 3px}
+  .eixo-lbl{font-size:10px}
+
+  /* ── Cards ── */
+  .action-card{
+    break-inside:avoid;
+    page-break-inside:avoid;
+    border-radius:7px;
+    padding:10px 12px;
+    margin-bottom:6px;
+    border:1px solid #D8E2F0;
+    border-left-width:4px;
+  }
+  .card-header-row{gap:8px;margin-bottom:7px}
+  .priority-num{width:26px;height:26px;font-size:10px;border-radius:5px}
+  .badge{font-size:9px;padding:1px 5px}
+  .card-title{font-size:12px;margin-bottom:3px}
+  .card-objetivo{font-size:10px;line-height:1.4}
+  .card-meta{min-width:110px}
+  .meta-label{font-size:8px}
+  .meta-value{font-size:10px}
+  .prazo-tag{font-size:9px;padding:1px 6px}
+
+  /* ── KRs ── */
+  .krs-section{grid-template-columns:1fr 1fr;gap:5px;margin-bottom:7px}
+  .kr-row{padding:6px 8px;border-radius:5px}
+  .kr-num{font-size:9px}
+  .kr-title{font-size:10px}
+  .kr-dl{font-size:9px}
+  .kr-pct{font-size:11px}
+  .kr-slider{display:none}
+  .kr-bar-bg{height:4px}
+  .kr-bar-fill{-webkit-print-color-adjust:exact}
+
+  /* ── Status row (simplified) ── */
+  .action-footer{padding-top:6px}
+  .status-row{margin-bottom:0}
+  .status-lbl{font-size:9px}
+  .status-select{font-size:10px;border:none;background:transparent;font-weight:700;-webkit-appearance:none;padding:0}
+  .ap-bg{width:60px;height:4px}
+  .ap-fill{-webkit-print-color-adjust:exact}
+  .ap-pct{font-size:10px}
+
+  /* ── PDCA table ── */
+  .pdca-section{padding-top:6px}
+  .pdca-header{margin-bottom:4px}
+  .pdca-title{font-size:9px}
+  .pdca-body{display:block!important}
+  .pdca-toggle{display:none}
+  .subacao-table{font-size:10px}
+  .subacao-table th{font-size:8px;padding:3px 6px}
+  .subacao-table td{padding:3px 6px}
+  .pdca-tag{width:18px;height:18px;font-size:9px}
+  .subacao-status-sel{font-size:9px;border:none;background:transparent;-webkit-appearance:none;font-weight:700;padding:0}
+
+  /* ── Print page break helpers ── */
+  .eixo-section{page-break-inside:avoid}
+  .eixo-section:not(:first-child){page-break-before:auto}
+
+  /* ── Print footer with page number ── */
+  .print-footer{display:flex!important}
+}
+
+/* Print footer — hidden on screen */
+.print-footer{
+  display:none;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  padding:4mm 14mm;
+  border-top:1px solid #D8E2F0;
+  font-size:9px;
+  color:#6B7BA4;
+  background:#fff;
+  justify-content:space-between;
+  align-items:center;
+}
 </style>
 </head>
 <body>
@@ -454,6 +578,7 @@ body.presenting .status-select option:not(:checked){display:none}
   <button class="tbtn present-exit" id="present-exit-btn" onclick="exitPresent()">✕ Sair da Apresentação</button>
   <div class="tsep"></div>
   <button class="tbtn" onclick="exportExcel()" style="color:#217346;border-color:#A9D18E" title="Exportar todas as ações para Excel">📊 Exportar Excel</button>
+  <button class="tbtn" onclick="printReport()" style="color:#5C35A3;border-color:#C5B3E6" title="Imprimir relatório A4">🖨 Imprimir A4</button>
   <div class="tsep"></div>
   <span id="tb-status" class="tlab">⏳ Conectando...</span>
 </div>
@@ -612,6 +737,13 @@ body.presenting .status-select option:not(:checked){display:none}
   </div>
   <div id="backlog-content"><div class="hist-empty" style="color:var(--mt);font-size:13px;text-align:center;padding:32px">Nenhuma ação arquivada. Use o botão 📦 nos cards para arquivar ações.</div></div>
 </div>
+
+  <!-- Print footer -->
+  <div class="print-footer" id="print-footer">
+    <span>Complexo Pequeno Príncipe — HPP · FPP · IPPP</span>
+    <span>Comissão de Integração · Plano de Ação 2026–2027</span>
+    <span id="print-date"></span>
+  </div>
 
 </div><!-- /main -->
 
@@ -2694,6 +2826,34 @@ window.exportExcel=()=>{
   a.download="plano_acao_cpp_"+new Date().toISOString().slice(0,10)+".csv";
   a.click();
   toast("Excel exportado com sucesso! 📊","suc");
+};
+
+// ── Print report ─────────────────────────────────────────────────────────────
+window.printReport=()=>{
+  // Set print date
+  const dateEl=document.getElementById("print-date");
+  if(dateEl) dateEl.textContent="Impresso em "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
+
+  // Expand all PDCA bodies before printing
+  document.querySelectorAll(".pdca-body").forEach(b=>b.classList.add("open"));
+
+  // Switch to actions tab if not already there
+  const actTab=document.querySelector(".tab.act");
+  if(actTab&&!actTab.textContent.includes("Ações")){
+    document.querySelector(".tab")?.click();
+  }
+
+  // Show all cards (clear filters)
+  showAll();
+
+  // Print
+  setTimeout(()=>{
+    window.print();
+    // collapse PDCA bodies again after print dialog
+    setTimeout(()=>{
+      document.querySelectorAll(".pdca-body").forEach(b=>b.classList.remove("open"));
+    },1000);
+  },300);
 };
 
 window.exportBackup=()=>{
