@@ -1364,6 +1364,7 @@ function smartRenderCards(changes){
     }
   });
   updateGantt();
+  updateEixoCounts();
 }
 
 // Ensure eixo section exists in DOM without destroying anything
@@ -1418,6 +1419,16 @@ function updateCardFields(p){
   if(fill) fill.style.width=avg+"%";
 }
 
+function updateEixoCounts(){
+  allEixos.forEach(e=>{
+    const cnt=document.getElementById("cnt-"+e.id);
+    if(!cnt)return;
+    const cards=document.querySelectorAll(`#cards-${e.id} .action-card`);
+    const n=cards.length;
+    cnt.textContent=n+" "+(n===1?"ação":"ações");
+  });
+}
+
 function updateGantt(){
   // Rebuild gantt rows without affecting cards
   $("gantt-rows").innerHTML="";
@@ -1454,6 +1465,9 @@ function renderAllCards(){
       <div id="cards-${e.id}"></div>`;
     $("tab-cards").appendChild(sec);
     pl.forEach(p=>{ if(!document.getElementById(p.id)) renderCard(p,e); else updateCardFields(p); });
+    // update count after cards are added
+    const cntEl=document.getElementById("cnt-"+e.id);
+    if(cntEl){ const n=document.getElementById("cards-"+e.id)?.querySelectorAll(".action-card").length||0; cntEl.textContent=n+" "+(n===1?"ação":"ações"); }
   });
   // ações sem eixo válido → container fallback
   const orphans=allPlanos.filter(p=>!allEixos.find(e=>e.id===p.eixo));
@@ -1995,6 +2009,18 @@ window.applyFilters=function applyFilters(){
   });
   // update filter counter
   updateFilterCounter();
+  // update eixo counts to reflect visible cards
+  allEixos.forEach(e=>{
+    const cnt=document.getElementById("cnt-"+e.id); if(!cnt)return;
+    const visible=document.querySelectorAll(`#cards-${e.id} .action-card:not(.hidden)`).length;
+    const total=document.querySelectorAll(`#cards-${e.id} .action-card`).length;
+    const isFiltered=fEv||fPv||fSv||fOv||(document.getElementById("search-input")?.value||"").trim();
+    if(isFiltered && visible!==total){
+      cnt.textContent=visible+" de "+total+" "+(total===1?"ação":"ações");
+    } else {
+      cnt.textContent=total+" "+(total===1?"ação":"ações");
+    }
+  });
 }
 
 function updateFilterCounter(){
