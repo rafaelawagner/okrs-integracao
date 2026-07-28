@@ -1266,7 +1266,7 @@ function renderEixoFilterBadges(){
 function renderEixoProgressBars(){
   const c=$("eixo-progress-bars"); c.innerHTML="";
   allEixos.forEach(e=>{
-    const planos=allPlanos.filter(p=>p.eixo===e.id);
+    const planos=allPlanos.filter(p=>!p.arquivada&&p.eixo===e.id);
     const pct=planos.length?Math.round(planos.reduce((s,p)=>s+Math.round(((p.kr1Progress||0)+(p.kr2Progress||0))/2),0)/planos.length):0;
     c.insertAdjacentHTML("beforeend",`
       <div class="ebr">
@@ -1807,19 +1807,26 @@ window.selNEColor=el=>{document.querySelectorAll("#ne-swatches .cswatch").forEac
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 function updateDash(){
+  // only count active (non-archived) plans
+  const ativos=allPlanos.filter(p=>!p.arquivada);
   const cnt={nao_iniciado:0,em_andamento:0,concluido:0,atrasado:0,cancelado:0};
   let tot=0,n=0;
-  allPlanos.forEach(p=>{cnt[p.status||"nao_iniciado"]++;const avg=Math.round(((p.kr1Progress||0)+(p.kr2Progress||0))/2);tot+=avg;n++;});
+  ativos.forEach(p=>{
+    cnt[p.status||"nao_iniciado"]++;
+    const krs=getKRsFromPlano(p);
+    const avg=krs.length?Math.round(krs.reduce((s,k)=>s+(k.progress||0),0)/krs.length):0;
+    tot+=avg;n++;
+  });
   const ov=n?Math.round(tot/n):0;
   $("gtxt").textContent=ov+"%";
   const circ=276.46,arc=$("garc");
   arc.style.strokeDashoffset=circ-(circ*ov/100);
   arc.style.stroke=ov>=75?"#3AAA35":ov>=40?"#F5A623":"#003087";
-  $("hs-pg").textContent=ov+"%"; $("hs-total").textContent=allPlanos.length;
+  $("hs-pg").textContent=ov+"%"; $("hs-total").textContent=ativos.length;
   $("hs-ea").textContent=cnt.em_andamento||0; $("hs-ok").textContent=cnt.concluido||0; $("hs-at").textContent=cnt.atrasado||0;
   [["ni","nao_iniciado"],["ea","em_andamento"],["ok","concluido"],["at","atrasado"],["ca","cancelado"]].forEach(([k,v])=>{const e=$("c-"+k);if(e)e.textContent=cnt[v]||0;});
   renderEixoProgressBars();
-  const notDone=allPlanos.filter(p=>p.status!=="concluido").slice(0,4);
+  const notDone=ativos.filter(p=>p.status!=="concluido").slice(0,4);
   $("next-act").innerHTML=notDone.length
     ?notDone.map(p=>`<div class="na"><span class="nanum">${String(p.prioridade||"?").slice(0,3)}</span><div><div class="natitle">${(p.titulo||"").slice(0,42)}</div><div class="nadate">Entrega: ${p.fim||"—"}</div></div></div>`).join("")
     :'<div style="font-size:12px;color:var(--mt)">Todas concluídas! 🎉</div>';
