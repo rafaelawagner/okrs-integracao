@@ -662,7 +662,11 @@ body.presenting .status-select option:not(:checked){display:none}
 </div>
 
 <div class="sh" id="tab-sh">
-  <h2 id="sh-title">Ações por Eixo Estruturante</h2>
+  <div style="display:flex;align-items:center;gap:10px">
+    <h2 id="sh-title">Ações por Eixo Estruturante</h2>
+    <span id="filter-counter" style="display:none;font-family:Montserrat,sans-serif;font-size:12px;font-weight:800;color:#fff;background:var(--azul);padding:2px 10px;border-radius:20px"></span>
+    <span id="filter-active-label" style="display:none;font-size:11px;color:var(--mt);font-style:italic"></span>
+  </div>
   <div class="sh-btns">
     <button class="add-main-btn" onclick="openActionModal(null)">＋ Nova Ação</button>
   </div>
@@ -1989,6 +1993,40 @@ window.applyFilters=function applyFilters(){
   document.querySelectorAll(".eixo-section").forEach(s=>{
     s.style.display=s.querySelectorAll(".action-card:not(.hidden)").length>0?"":"none";
   });
+  // update filter counter
+  updateFilterCounter();
+}
+
+function updateFilterCounter(){
+  const total=document.querySelectorAll(".action-card:not(.hidden)").length;
+  const allActive=document.querySelectorAll(".action-card").length;
+  const counter=document.getElementById("filter-counter");
+  const label=document.getElementById("filter-active-label");
+  const isFiltered=fEv||fPv||fSv||fOv||
+    (document.getElementById("search-input")?.value||"").trim().length>0;
+  if(counter){
+    if(isFiltered){
+      counter.textContent=total+" "+(total===1?"ação":"ações");
+      counter.style.display="";
+    } else {
+      counter.style.display="none";
+    }
+  }
+  if(label){
+    if(isFiltered){
+      const parts=[];
+      if(fEv){ const e=allEixos.find(x=>x.id===fEv); if(e) parts.push("Eixo: "+e.nome); }
+      if(fPv) parts.push("Prazo: "+({curto:"Curto",medio:"Médio",longo:"Longo"}[fPv]||fPv));
+      if(fSv) parts.push("Status: "+({nao_iniciado:"Não iniciado",em_andamento:"Em andamento",concluido:"Concluído",atrasado:"Atrasado",cancelado:"Cancelado"}[fSv]||fSv));
+      if(fOv) parts.push("Observador: "+fOv);
+      const q=(document.getElementById("search-input")?.value||"").trim();
+      if(q) parts.push('Busca: "'+q+'"');
+      label.textContent=parts.length?"Filtros: "+parts.join(" · "):"";
+      label.style.display=parts.length?"":"none";
+    } else {
+      label.style.display="none";
+    }
+  }
 }
 window.showAll=()=>{
   const si=document.getElementById("search-input"); if(si)si.value="";
@@ -2004,6 +2042,7 @@ window.showAll=()=>{
   });
   const titleEl=document.getElementById("sh-title");
   if(titleEl)titleEl.textContent="Ações por Eixo Estruturante";
+  updateFilterCounter();
 };
 // Expose to global scope (needed because ES modules are isolated)
 window.applyFilters=applyFilters;
