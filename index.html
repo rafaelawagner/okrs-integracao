@@ -219,12 +219,15 @@ header{background:var(--azul);color:#fff;overflow:hidden}
 .log-inp:focus{outline:none;border-color:var(--azul)}
 .log-btn{background:var(--azul);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
 .log-btn:hover{opacity:.85}
-.log-edit-area{display:none;margin-top:4px;gap:4px}
+.log-edit-area{display:none;margin-top:6px;gap:6px;flex-direction:column}
 .log-edit-area.open{display:flex}
-.log-edit-inp{flex:1;border:1.5px solid var(--azul);border-radius:6px;padding:4px 8px;font-size:12px;font-family:inherit;color:var(--tx)}
-.log-edit-inp:focus{outline:none}
-.log-edit-save{background:var(--azul);color:#fff;border:none;border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer}
-.log-edit-cancel{background:none;color:var(--mt);border:1px solid var(--bd);border-radius:6px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer}
+.log-edit-inp{width:100%;border:1.5px solid var(--azul);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;color:var(--tx);min-height:72px;resize:vertical;line-height:1.5}
+.log-edit-inp:focus{outline:none;box-shadow:0 0 0 3px rgba(0,48,135,.1)}
+.log-edit-btns{display:flex;gap:6px;justify-content:flex-end}
+.log-edit-save{background:var(--azul);color:#fff;border:none;border-radius:7px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
+.log-edit-save:hover{opacity:.85}
+.log-edit-cancel{background:none;color:var(--mt);border:1px solid var(--bd);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.log-edit-cancel:hover{border-color:var(--tx);color:var(--tx)}
 .log-entry{position:relative}
 .log-empty{font-size:11px;color:var(--mt);font-style:italic;padding:4px 0}
 
@@ -1679,11 +1682,14 @@ function loadComments(pid){
             <button class="log-del" onclick="delComment('${d.id}')" title="Apagar atualização">🗑 Apagar</button>
           </div>`:""}
         </div>
-        <div class="log-edit-area" id="lea-${d.id}" style="display:none;gap:4px;margin-top:2px">
-          <input class="log-edit-inp" id="lei-${d.id}" value="${x.texto.replace(/"/g,'&quot;')}"
-            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();saveEditComment('${d.id}')}if(event.key==='Escape')cancelEditComment('${d.id}')">
-          <button class="log-edit-save" onclick="saveEditComment('${d.id}')">✓</button>
-          <button class="log-edit-cancel" onclick="cancelEditComment('${d.id}')">✕</button>
+        <div class="log-edit-area" id="lea-${d.id}" style="display:none;margin-top:6px">
+          <textarea class="log-edit-inp" id="lei-${d.id}"
+            onkeydown="if(event.key==='Escape')cancelEditComment('${d.id}')"
+            >${x.texto}</textarea>
+          <div class="log-edit-btns">
+            <button class="log-edit-cancel" onclick="cancelEditComment('${d.id}')">✕ Cancelar</button>
+            <button class="log-edit-save" onclick="saveEditComment('${d.id}')">✓ Salvar</button>
+          </div>
         </div>
       </div>`;
     }).join("");
@@ -1747,7 +1753,7 @@ window.cancelEditComment=id=>{
 window.saveEditComment=async id=>{
   const lei=document.getElementById("lei-"+id);
   if(!lei)return;
-  const novoTexto=lei.value.trim();
+  const novoTexto=(lei.value||lei.textContent||"").trim();
   if(!novoTexto){toast("O texto não pode ficar vazio.","warn");return;}
   try{
     await updateDoc(doc(db,"comentarios",id),{
