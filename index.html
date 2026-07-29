@@ -1381,6 +1381,9 @@ function smartRenderCards(changes){
   });
   updateGantt();
   updateEixoCounts();
+  // if we're in a flat sort mode, re-apply sort to move new cards into flat container
+  const currentSort=document.getElementById("sort-select")?.value||"eixo";
+  if(currentSort!=="eixo") setTimeout(()=>window.applySort&&window.applySort(),50);
 }
 
 // Ensure eixo section exists in DOM without destroying anything
