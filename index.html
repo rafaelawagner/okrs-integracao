@@ -1932,30 +1932,42 @@ window.applySort=function applySort(){
   const sortVal=document.getElementById("sort-select")?.value||"eixo";
   const titleEl=document.getElementById("sh-title");
 
+  const labels={
+    eixo:"Ações por Eixo Estruturante",
+    prioridade:"Ações por Número (Prioridade)",
+    prazo_asc:"Ações por Prazo — mais próximo primeiro",
+    prazo_desc:"Ações por Prazo — mais distante primeiro",
+    progresso_desc:"Ações por Progresso — maior primeiro",
+    progresso_asc:"Ações por Progresso — menor primeiro",
+    status:"Ações por Status",
+  };
+  if(titleEl) titleEl.textContent=labels[sortVal]||"Ações";
+
+  // Step 1: always return all cards to their original eixo containers first
+  // This ensures a clean slate when switching between sort modes
+  allPlanos.filter(p=>!p.arquivada).forEach(p=>{
+    const card=document.getElementById(p.id);
+    const container=document.getElementById("cards-"+(p.eixo||"__orphan"));
+    if(card&&container&&card.parentElement!==container){
+      container.appendChild(card);
+    }
+  });
+
+  // Step 2: hide/show flat section
+  const flatSec=document.getElementById("flat-sorted-section");
+
   if(sortVal==="eixo"){
-    // restore original eixo grouping
-    if(titleEl) titleEl.textContent="Ações por Eixo Estruturante";
-    renderAllCards();
+    // show all eixo sections, hide flat
+    if(flatSec) flatSec.style.display="none";
+    document.querySelectorAll(".eixo-section:not(#flat-sorted-section)").forEach(s=>{
+      s.style.display=s.querySelectorAll(".action-card").length>0?"":"none";
+    });
     window.applyFilters();
     return;
   }
 
-  // flat sort — move all cards into a single "sorted" container
-  if(titleEl){
-    const labels={
-      prioridade:"Ações por Número (Prioridade)",
-      prazo_asc:"Ações por Prazo — mais próximo primeiro",
-      prazo_desc:"Ações por Prazo — mais distante primeiro",
-      progresso_desc:"Ações por Progresso — maior primeiro",
-      progresso_asc:"Ações por Progresso — menor primeiro",
-      status:"Ações por Status",
-    };
-    titleEl.textContent=labels[sortVal]||"Ações";
-  }
-
-  // get all non-archived planos
+  // Step 3: sort planos
   let sorted=[...allPlanos].filter(p=>!p.arquivada);
-
   if(sortVal==="prioridade"){
     sorted.sort((a,b)=>(a.prioridade||99)-(b.prioridade||99));
   } else if(sortVal==="prazo_asc"){
@@ -1970,22 +1982,23 @@ window.applySort=function applySort(){
     sorted.sort((a,b)=>(statusOrd[a.status||"nao_iniciado"]??9)-(statusOrd[b.status||"nao_iniciado"]??9));
   }
 
-  // hide all regular eixo sections, show only flat sorted container
-  document.querySelectorAll(".eixo-section:not(#flat-sorted-section)").forEach(s=>s.style.display="none");
-
-  let flatSec=document.getElementById("flat-sorted-section");
-  if(!flatSec){
-    flatSec=document.createElement("div");
-    flatSec.id="flat-sorted-section";
-    flatSec.className="eixo-section";
-    document.getElementById("tab-cards").appendChild(flatSec);
+  // Step 4: move cards into flat container in sorted order
+  let flat=flatSec;
+  if(!flat){
+    flat=document.createElement("div");
+    flat.id="flat-sorted-section";
+    flat.className="eixo-section";
+    document.getElementById("tab-cards").appendChild(flat);
   }
-  flatSec.style.display="";
-  flatSec.innerHTML="";
+  flat.innerHTML="";
+  flat.style.display="";
   sorted.forEach(p=>{
     const card=document.getElementById(p.id);
-    if(card) flatSec.appendChild(card);
+    if(card) flat.appendChild(card);
   });
+
+  // Step 5: hide regular eixo sections
+  document.querySelectorAll(".eixo-section:not(#flat-sorted-section)").forEach(s=>s.style.display="none");
 
   window.applyFilters();
 };
