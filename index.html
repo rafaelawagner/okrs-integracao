@@ -388,7 +388,15 @@ body.presenting .status-select option:not(:checked){display:none}
 }
 @media print{
   /* ── A4 Page setup ── */
-  @page{size:A4;margin:16mm 14mm 16mm 14mm}
+  @page{size:A4;margin:16mm 14mm 16mm 14mm;
+    /* suppress browser header/footer with URL and date */
+    @top-center{content:none}
+    @bottom-center{content:none}
+    @top-left{content:none}
+    @top-right{content:none}
+    @bottom-left{content:none}
+    @bottom-right{content:none}
+  }
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{background:#fff;font-size:11px;color:#0D1B3E}
 
@@ -2850,19 +2858,22 @@ window.saveObserver=async(id,val)=>{
 
 // ── Excel Export ──────────────────────────────────────────────────────────────
 window.exportExcel=()=>{
-  if(allPlanos.length===0){toast("Nenhuma ação para exportar.","warn");return;}
+  // Only export active (non-archived) plans
+  const ativos=allPlanos.filter(p=>!p.arquivada)
+    .sort((a,b)=>(a.prioridade||99)-(b.prioridade||99));
+
+  if(ativos.length===0){toast("Nenhuma ação ativa para exportar.","warn");return;}
 
   const natLabels={oportunidade:"Oportunidade",dor:"Dor",fluxo:"Falha de Fluxo",comunicacao:"Falha de Comunicação"};
   const prazoLabels={curto:"Curto (até Dez/2026)",medio:"Médio (até Jun/2027)",longo:"Longo (até Dez/2027)"};
   const statusLabels={nao_iniciado:"Não iniciado",em_andamento:"Em andamento",concluido:"Concluído",atrasado:"Atrasado",cancelado:"Cancelado"};
 
-  // Build rows
   const rows=[];
 
   // Header
   rows.push([
-    "Prioridade","Título","Eixo","Prazo","Natureza","Status","Quick Win",
-    "Início","Conclusão","Responsável","Observador","Arquivada",
+    "Nº","Título","Eixo","Prazo","Natureza","Status","Quick Win",
+    "Início","Conclusão","Responsável","Observador",
     "Progresso Geral (%)","Nº de KRs",
     "KR 1 — Descrição","KR 1 — Meta","KR 1 — Progresso (%)",
     "KR 2 — Descrição","KR 2 — Meta","KR 2 — Progresso (%)",
@@ -2871,17 +2882,15 @@ window.exportExcel=()=>{
     "Objetivo / Descrição"
   ]);
 
-  // Sort by prioridade
-  const sorted=[...allPlanos].sort((a,b)=>(a.prioridade||99)-(b.prioridade||99));
-
-  sorted.forEach(p=>{
+  ativos.forEach((p,i)=>{
     const eixo=allEixos.find(e=>e.id===p.eixo);
+    // Use getKRsFromPlano to get actual KR data including progress
     const krs=getKRsFromPlano(p);
     const avg=krs.length?Math.round(krs.reduce((s,k)=>s+(k.progress||0),0)/krs.length):0;
     const nats=(p.natureza||[]).map(n=>natLabels[n]||n).join(", ");
 
     const row=[
-      p.prioridade||"",
+      i+1,                                    // sequential number
       p.titulo||"",
       eixo?.nome||p.eixo||"",
       prazoLabels[p.prazo]||p.prazo||"",
@@ -2892,12 +2901,11 @@ window.exportExcel=()=>{
       p.fim||"",
       p.responsavel||"",
       p.observador||"",
-      p.arquivada?"Sim":"Não",
       avg,
       krs.length,
     ];
 
-    // KRs 1–4
+    // KRs 1–4 using actual krs array
     for(let i=0;i<4;i++){
       const kr=krs[i];
       row.push(kr?.titulo||"", kr?.meta||"", kr!=null?(kr.progress||0):"");
@@ -2908,11 +2916,10 @@ window.exportExcel=()=>{
   });
 
   // Convert to CSV with BOM for Excel UTF-8
-  const BOM="﻿";
+  const BOM="\uFEFF";
   const csv=BOM+rows.map(row=>
     row.map(cell=>{
       const s=String(cell==null?"":cell);
-      // Quote cells that contain comma, newline or quote
       if(s.includes(",")||s.includes("\n")||s.includes('"'))
         return '"'+s.replace(/"/g,'""')+'"';
       return s;
@@ -2924,12 +2931,9 @@ window.exportExcel=()=>{
   a.href=URL.createObjectURL(blob);
   a.download="plano_acao_cpp_"+new Date().toISOString().slice(0,10)+".csv";
   a.click();
-  toast("Excel exportado com sucesso! 📊","suc");
-};
-
-// ── Print report ─────────────────────────────────────────────────────────────
+  toast(`Excel exportado — ${ativos.length} ações ativas 📊`,"suc");
+}
 window.printReport=()=>{
-  // Build dedicated print container with actions sorted alphabetically
   const ativos=allPlanos.filter(p=>!p.arquivada)
     .sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||"","pt-BR"));
 
@@ -2938,112 +2942,113 @@ window.printReport=()=>{
   const prazoLabel={curto:"Curto prazo",medio:"Médio prazo",longo:"Longo prazo"};
   const natLabel={oportunidade:"Oportunidade",dor:"Dor",
     fluxo:"Falha de Fluxo",comunicacao:"Falha de Comunicação"};
+  const statusColor={nao_iniciado:"#6B7BA4",em_andamento:"#F5A623",
+    concluido:"#3AAA35",atrasado:"#E53935",cancelado:"#9E9E9E"};
+  const statusBg={nao_iniciado:"#F0F4FA",em_andamento:"#FDF3E3",
+    concluido:"#E8F7E7",atrasado:"#FAEAEA",cancelado:"#F5F5F5"};
 
   const rows=ativos.map((p,i)=>{
-    const eixo=allEixos.find(e=>e.id===p.eixo)||{cor:"#9E9E9E",nome:"Sem Eixo"};
+    // support multi-eixo: use primary eixo, fallback to first in array
+    const eixoId=p.eixo||(Array.isArray(p.eixos)?p.eixos[0]:null);
+    const eixo=allEixos.find(e=>e.id===eixoId)||{cor:"#6B7BA4",nome:p.eixo||"Sem Eixo"};
     const krs=getKRsFromPlano(p);
     const avg=krs.length?Math.round(krs.reduce((s,k)=>s+(k.progress||0),0)/krs.length):0;
     const nats=(p.natureza||[]).map(n=>natLabel[n]||n).join(", ");
+    const st=p.status||"nao_iniciado";
+    const num=String(i+1).padStart(2,"0");
+
     const krsHtml=krs.map(kr=>`
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-        <span style="font-size:9px;font-weight:800;color:${eixo.cor};background:${eixo.cor}18;padding:1px 5px;border-radius:3px;flex-shrink:0">KR ${kr.num}</span>
-        <span style="font-size:10px;flex:1">${kr.titulo||""}</span>
-        <span style="font-size:10px;color:#6B7BA4;flex-shrink:0">${kr.meta||""}</span>
-        <span style="font-size:10px;font-weight:700;color:${eixo.cor};flex-shrink:0;min-width:28px;text-align:right">${kr.progress||0}%</span>
+      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:4px">
+        <span style="font-size:9px;font-weight:800;color:${eixo.cor};background:${eixo.cor}18;
+          padding:1px 6px;border-radius:3px;flex-shrink:0;margin-top:1px">KR ${kr.num}</span>
+        <span style="font-size:10px;flex:1;line-height:1.4">${kr.titulo||""}</span>
+        <span style="font-size:10px;color:#6B7BA4;flex-shrink:0;white-space:nowrap">${kr.meta||""}</span>
+        <span style="font-size:11px;font-weight:800;color:${eixo.cor};flex-shrink:0;min-width:30px;text-align:right">${kr.progress||0}%</span>
       </div>
-      <div style="height:3px;background:#E8EDF5;border-radius:2px;margin-bottom:5px;overflow:hidden">
+      <div style="height:3px;background:#E8EDF5;border-radius:2px;margin-bottom:6px;overflow:hidden;margin-left:46px">
         <div style="height:100%;width:${kr.progress||0}%;background:${eixo.cor};border-radius:2px"></div>
       </div>`).join("");
 
-    const statusColor={nao_iniciado:"#6B7BA4",em_andamento:"#F5A623",
-      concluido:"#3AAA35",atrasado:"#E53935",cancelado:"#9E9E9E"};
-    const statusBg={nao_iniciado:"#F0F4FA",em_andamento:"#FDF3E3",
-      concluido:"#E8F7E7",atrasado:"#FAEAEA",cancelado:"#F5F5F5"};
-    const st=p.status||"nao_iniciado";
-
     return `
     <div style="border:1px solid #D8E2F0;border-left:4px solid ${p.borderColor||eixo.cor};
-      border-radius:8px;padding:14px 16px;margin-bottom:10px;break-inside:avoid;page-break-inside:avoid;background:#fff">
+      border-radius:8px;padding:14px 16px;margin-bottom:10px;
+      break-inside:avoid;page-break-inside:avoid;background:#fff">
 
-      <!-- Header row -->
-      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
-        <div style="width:28px;height:28px;border-radius:6px;background:${eixo.cor}18;
-          border:1.5px solid ${eixo.cor};display:flex;align-items:center;justify-content:center;
-          font-family:Montserrat,sans-serif;font-size:11px;font-weight:900;color:${eixo.cor};flex-shrink:0">
-          ${String(i+1).padStart(2,"0")}
-        </div>
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
-            <span style="background:${eixo.cor}18;color:${eixo.cor};padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700">${eixo.nome}</span>
-            ${nats?`<span style="background:#F0F4FA;color:#6B7BA4;padding:1px 7px;border-radius:20px;font-size:9px;font-weight:600">${nats}</span>`:""}
-            <span style="background:${statusBg[st]};color:${statusColor[st]};padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700">${statusLabel[st]}</span>
-            ${p.prazo?`<span style="background:#F0F4FA;color:#6B7BA4;padding:1px 7px;border-radius:20px;font-size:9px">${prazoLabel[p.prazo]||p.prazo}</span>`:""}
-            ${p.quickWin?`<span style="background:#FFF8E1;color:#C8970A;padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700">⚡ Quick Win</span>`:""}
+      <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:8px">
+        <div style="width:30px;height:30px;border-radius:7px;background:${eixo.cor||'#6B7BA4'}18;
+          border:1.5px solid ${eixo.cor||'#6B7BA4'};display:flex;align-items:center;justify-content:center;
+          font-family:Montserrat,sans-serif;font-size:12px;font-weight:900;
+          color:${eixo.cor||'#6B7BA4'};flex-shrink:0;min-width:30px">${num}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:5px">
+            <span style="background:${eixo.cor}18;color:${eixo.cor};padding:2px 8px;
+              border-radius:20px;font-size:9px;font-weight:700">${eixo.nome}</span>
+            ${nats?`<span style="background:#F0F4FA;color:#6B7BA4;padding:2px 8px;
+              border-radius:20px;font-size:9px;font-weight:600">${nats}</span>`:""}
+            <span style="background:${statusBg[st]};color:${statusColor[st]};padding:2px 8px;
+              border-radius:20px;font-size:9px;font-weight:700">${statusLabel[st]}</span>
+            ${p.prazo?`<span style="background:#F0F4FA;color:#6B7BA4;padding:2px 8px;
+              border-radius:20px;font-size:9px">${prazoLabel[p.prazo]||p.prazo}</span>`:""}
+            ${p.quickWin?`<span style="background:#FFF8E1;color:#C8970A;padding:2px 8px;
+              border-radius:20px;font-size:9px;font-weight:700">⚡ Quick Win</span>`:""}
           </div>
-          <div style="font-size:13px;font-weight:700;color:#0D1B3E;margin-bottom:3px;line-height:1.3">${p.titulo||"Sem título"}</div>
-          <div style="font-size:10px;color:#4A5568;line-height:1.5">${p.objetivo||""}</div>
+          <div style="font-size:13px;font-weight:700;color:#0D1B3E;
+            margin-bottom:4px;line-height:1.3">${p.titulo||""}</div>
+          <div style="font-size:10px;color:#4A5568;line-height:1.5;
+            margin-bottom:8px">${p.objetivo||""}</div>
+          ${krs.length?`<div style="border-top:1px solid #EDF2F7;padding-top:8px">${krsHtml}</div>`:""}
+          <div style="display:flex;gap:14px;margin-top:8px;padding-top:6px;
+            border-top:1px solid #EDF2F7;flex-wrap:wrap">
+            ${p.responsavel?`<span style="font-size:9px;color:#6B7BA4">👤 <strong>${p.responsavel}</strong></span>`:""}
+            ${p.observador&&p.observador!=="Todos"?`<span style="font-size:9px;color:#6B7BA4">👁 <strong>${p.observador}</strong></span>`:""}
+            ${p.inicio||p.fim?`<span style="font-size:9px;color:#6B7BA4">📅 ${p.inicio||""}${p.fim?" → "+p.fim:""}</span>`:""}
+          </div>
         </div>
-        <div style="flex-shrink:0;text-align:right;min-width:60px">
-          <div style="font-family:Montserrat,sans-serif;font-size:20px;font-weight:900;color:${eixo.cor}">${avg}%</div>
-          <div style="font-size:9px;color:#6B7BA4">progresso</div>
-          <div style="height:4px;background:#E8EDF5;border-radius:2px;margin-top:4px;overflow:hidden">
+        <div style="flex-shrink:0;text-align:right;min-width:55px">
+          <div style="font-family:Montserrat,sans-serif;font-size:22px;
+            font-weight:900;color:${eixo.cor};line-height:1">${avg}%</div>
+          <div style="font-size:9px;color:#6B7BA4;margin-bottom:4px">progresso</div>
+          <div style="height:4px;background:#E8EDF5;border-radius:2px;overflow:hidden">
             <div style="height:100%;width:${avg}%;background:${eixo.cor};border-radius:2px"></div>
           </div>
         </div>
       </div>
-
-      <!-- KRs -->
-      ${krs.length?`<div style="border-top:1px solid #EDF2F7;padding-top:8px;margin-top:4px">${krsHtml}</div>`:""}
-
-      <!-- Meta info row -->
-      <div style="display:flex;gap:14px;margin-top:8px;padding-top:6px;border-top:1px solid #EDF2F7;flex-wrap:wrap">
-        ${p.responsavel?`<span style="font-size:9px;color:#6B7BA4">👤 <strong>${p.responsavel}</strong></span>`:""}
-        ${p.observador?`<span style="font-size:9px;color:#6B7BA4">👁 <strong>${p.observador}</strong></span>`:""}
-        ${p.inicio||p.fim?`<span style="font-size:9px;color:#6B7BA4">📅 ${p.inicio||""}${p.fim?" → "+p.fim:""}</span>`:""}
-      </div>
     </div>`;
   }).join("");
 
-  // Inject into print container
-  let printEl=document.getElementById("print-content");
-  if(!printEl){
-    printEl=document.createElement("div");
-    printEl.id="print-content";
-    document.body.appendChild(printEl);
-  }
-  const ativos2=allPlanos.filter(p=>!p.arquivada);
-  const avg2=ativos2.length?Math.round(
-    ativos2.reduce((s,p)=>{
+  // Calculate summary stats
+  const avg2=ativos.length?Math.round(
+    ativos.reduce((s,p)=>{
       const krs=getKRsFromPlano(p);
       return s+(krs.length?Math.round(krs.reduce((ss,k)=>ss+(k.progress||0),0)/krs.length):0);
-    },0)/ativos2.length
-  ):0;
+    },0)/ativos.length):0;
+
+  let printEl=document.getElementById("print-content");
+  if(!printEl){ printEl=document.createElement("div"); printEl.id="print-content"; document.body.appendChild(printEl); }
+
   printEl.innerHTML=`
-    <div id="print-report-header" style="display:block;background:#003087;color:#fff;
-      padding:16px 20px;border-radius:8px;margin-bottom:16px">
+    <div style="background:#003087;color:#fff;padding:18px 22px;border-radius:10px;margin-bottom:18px">
       <div style="display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#F5C200;margin-bottom:4px">
-            Complexo Pequeno Príncipe — HPP · FPP · IPPP
-          </div>
-          <div style="font-size:18px;font-weight:700;margin-bottom:2px">Plano de Ação 2026–2027</div>
+            Complexo Pequeno Príncipe — HPP · FPP · IPPP</div>
+          <div style="font-size:20px;font-weight:700;margin-bottom:2px">Plano de Ação 2026–2027</div>
           <div style="font-size:11px;opacity:.7">Comissão de Integração · Ordenado alfabeticamente</div>
         </div>
         <div style="text-align:right">
-          <div style="font-size:28px;font-weight:900">${avg2}%</div>
-          <div style="font-size:10px;opacity:.7">progresso geral</div>
-          <div style="font-size:11px;margin-top:4px">${ativos2.length} ações ativas</div>
+          <div style="font-size:30px;font-weight:900;line-height:1">${avg2}%</div>
+          <div style="font-size:10px;opacity:.7;margin-bottom:3px">progresso geral</div>
+          <div style="font-size:12px;font-weight:600">${ativos.length} ações ativas</div>
         </div>
       </div>
     </div>
   `+rows;
 
-  // Set date
   const dateEl=document.getElementById("print-date");
   if(dateEl) dateEl.textContent="Impresso em "+
     new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
 
-  setTimeout(()=>{ window.print(); },300);
+  setTimeout(()=>window.print(),300);
 };
 
 window.exportBackup=()=>{
