@@ -1393,6 +1393,13 @@ function updateCardFields(p){
   const eixo=allEixos.find(x=>x.id===p.eixo)||{cor:"#9E9E9E",nome:"Sem Eixo"};
   const border=p.borderColor||eixo.cor;
 
+  // Update priority number dynamically
+  const prioEl=card.querySelector(".priority-num");
+  if(prioEl){
+    const activeSorted=allPlanos.filter(x=>!x.arquivada).sort((a,b)=>(a.prioridade||99)-(b.prioridade||99));
+    const idx=activeSorted.findIndex(x=>x.id===p.id);
+    if(idx>=0) prioEl.textContent=String(idx+1).padStart(2,"0");
+  }
   // Update title and objetivo if not currently focused
   const titleEl=card.querySelector(".card-title");
   if(titleEl&&document.activeElement!==titleEl) titleEl.textContent=p.titulo||"";
@@ -1492,7 +1499,10 @@ function renderCard(p,e){
   const border=p.borderColor||eixo.cor;
   const nats=Array.isArray(p.natureza)?p.natureza:[];
   const avg=Math.round(((p.kr1Progress||0)+(p.kr2Progress||0))/2);
-  const prioNum=p.prioridade!=null?String(p.prioridade).padStart(2,"0"):"—";
+  // Calculate number dynamically from position in active (non-archived) list sorted by prioridade
+const activeSorted=allPlanos.filter(x=>!x.arquivada).sort((a,b)=>(a.prioridade||99)-(b.prioridade||99));
+const prioIdx=activeSorted.findIndex(x=>x.id===p.id);
+const prioNum=prioIdx>=0?String(prioIdx+1).padStart(2,"0"):"—";
   // show badge for every eixo the action belongs to
   const allCardEixos=Array.isArray(p.eixos)&&p.eixos.length>0
     ?p.eixos.map(eid=>allEixos.find(x=>x.id===eid)).filter(Boolean)
