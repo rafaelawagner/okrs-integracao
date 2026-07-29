@@ -1994,42 +1994,33 @@ window.applyFilters=function applyFilters(){
   const q=(document.getElementById("search-input")?.value||"").toLowerCase().trim();
 
   document.querySelectorAll(".action-card").forEach(c=>{
+    // always use allPlanos data — never rely on dataset which may be stale
     const p=allPlanos.find(x=>x.id===c.id);
+    if(!p){ c.classList.add("hidden"); return; }
     let show=true;
 
-    // eixo filter
+    // eixo filter — use data from allPlanos
     if(fEv){
-      const cardEixos=c.dataset.eixos?c.dataset.eixos.split(","):[c.dataset.eixo];
+      const cardEixos=Array.isArray(p.eixos)&&p.eixos.length?p.eixos:[p.eixo||""];
       if(!cardEixos.includes(fEv))show=false;
     }
-    // prazo filter
-    if(fPv&&c.dataset.prazo!==fPv)show=false;
-    // status filter
-    if(fSv&&(c.querySelector(".status-select")?.value||"nao_iniciado")!==fSv)show=false;
+    // prazo filter — use data from allPlanos
+    if(fPv&&(p.prazo||"")!==fPv)show=false;
+    // status filter — use data from allPlanos
+    if(fSv&&(p.status||"nao_iniciado")!==fSv)show=false;
+    // observer filter — use data from allPlanos
+    if(fOv&&(p.observador||"")!==fOv)show=false;
 
-    // observer filter
-    if(fOv){
-      const p2=allPlanos.find(x=>x.id===c.id);
-      if(!p2||(p2.observador||"")!==fOv)show=false;
-    }
-
-    // text search — uses allPlanos data (reliable, not DOM-dependent)
+    // text search
     if(q&&show){
-      if(p){
-        const krs=getKRsFromPlano(p);
-        const krText=krs.map(k=>(k.titulo||"")+" "+(k.meta||"")).join(" ");
-        const haystack=[
-          p.titulo||"",
-          p.objetivo||"",
-          p.responsavel||"",
-          p.observador||"",
-          krText,
-          allEixos.find(e=>e.id===p.eixo)?.nome||""
-        ].join(" ").toLowerCase();
-        if(!haystack.includes(q))show=false;
-      } else {
-        if(!(c.textContent||"").toLowerCase().includes(q))show=false;
-      }
+      const krs=getKRsFromPlano(p);
+      const krText=krs.map(k=>(k.titulo||"")+" "+(k.meta||"")).join(" ");
+      const haystack=[
+        p.titulo||"",p.objetivo||"",p.responsavel||"",
+        p.observador||"",krText,
+        allEixos.find(e=>e.id===p.eixo)?.nome||""
+      ].join(" ").toLowerCase();
+      if(!haystack.includes(q))show=false;
     }
     c.classList.toggle("hidden",!show);
   });
