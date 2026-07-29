@@ -1970,8 +1970,8 @@ window.applySort=function applySort(){
     sorted.sort((a,b)=>(statusOrd[a.status||"nao_iniciado"]??9)-(statusOrd[b.status||"nao_iniciado"]??9));
   }
 
-  // hide all eixo sections, show a flat sorted container
-  document.querySelectorAll(".eixo-section").forEach(s=>s.style.display="none");
+  // hide all regular eixo sections, show only flat sorted container
+  document.querySelectorAll(".eixo-section:not(#flat-sorted-section)").forEach(s=>s.style.display="none");
 
   let flatSec=document.getElementById("flat-sorted-section");
   if(!flatSec){
@@ -2024,9 +2024,15 @@ window.applyFilters=function applyFilters(){
     }
     c.classList.toggle("hidden",!show);
   });
-  document.querySelectorAll(".eixo-section").forEach(s=>{
+  // update eixo section visibility — but never hide flat-sorted-section
+  document.querySelectorAll(".eixo-section:not(#flat-sorted-section)").forEach(s=>{
     s.style.display=s.querySelectorAll(".action-card:not(.hidden)").length>0?"":"none";
   });
+  // flat sorted section: show if it has any visible cards
+  const flatSec=document.getElementById("flat-sorted-section");
+  if(flatSec&&flatSec.style.display!=="none"){
+    flatSec.style.display=flatSec.querySelectorAll(".action-card:not(.hidden)").length>0?"":"none";
+  }
   // update filter counter
   updateFilterCounter();
   // update eixo counts to reflect visible cards
