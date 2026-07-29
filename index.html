@@ -370,7 +370,9 @@ body.presenting .action-footer .status-row{pointer-events:none}
 body.presenting .status-select{pointer-events:none;-webkit-appearance:none;border:none;background:transparent;font-weight:700;padding:0}
 /* Clean card styling for presentation */
 body.presenting .action-card{border-radius:14px;box-shadow:0 2px 12px rgba(0,30,87,.08);margin-bottom:2px}
-body.presenting .krs-section{grid-template-columns:1fr 1fr}
+body.presenting #tab-cards,body.presenting .eixo-section,body.presenting .action-card{display:block!important}
+body.presenting .cc{display:block!important}
+body.presenting .krs-section{display:grid!important;grid-template-columns:1fr 1fr}
 body.presenting .kr-drag-handle{display:none}
 body.presenting .kr-slider{pointer-events:none}
 /* Present dashboard — bigger numbers */
@@ -390,19 +392,21 @@ body.presenting .status-select option:not(:checked){display:none}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   body{background:#fff;font-size:11px;color:#0D1B3E}
 
-  /* ── Hide UI elements ── */
-  .tb,.ctrl,.tabs,.modal-overlay,.pdca-modal-overlay,
+  /* ── Print report header ── */
+  #print-report-header{display:block!important;
+    background:#003087;color:#fff;padding:16px 20px;border-radius:8px;
+    margin-bottom:16px;page-break-inside:avoid}
+
+  /* ── Hide everything except print-content ── */
+  header,.tb,.ctrl,.tabs,.modal-overlay,.pdca-modal-overlay,
   #sync-bar,#loading-overlay,#toast-area,
-  .sh-btns,.add-here-btn,.del-eixo-btn,
-  .card-arch-btn,.card-del-btn,.saving-ind,
-  .log-row,.subacao-del,.pdca-add-btn,
-  .kr-drag-handle,.add-kr-btn,
-  .log-section-header,.log-entries,
-  .pdca-section,.pdca-header,.pdca-body,
-  #tab-gantt,#tab-hist,#tab-eixos,#tab-backlog,
-  #seed-banner,#flat-sorted-section,
-  .umenu,.user-chip,
-  [id^="obs-"]{display:none!important}
+  #tab-cards,#tab-gantt,#tab-hist,#tab-eixos,#tab-backlog,
+  .sh,#seed-banner,.umenu,.user-chip,
+  .dash,.cstripe{display:none!important}
+
+  /* ── Show print container ── */
+  #print-content{display:block!important}
+  .main{padding:0!important}
 
   /* ── Header ── */
   header{background:#003087!important;color:#fff!important;border-radius:0;page-break-inside:avoid}
@@ -497,6 +501,7 @@ body.presenting .status-select option:not(:checked){display:none}
 }
 
 /* Print footer — hidden on screen */
+#print-content{display:none}
 .print-footer{
   display:none;
   position:fixed;
@@ -2106,6 +2111,12 @@ let presenting=false;
 window.enterPresent=()=>{
   presenting=true; document.body.classList.add("presenting");
   $("present-btn").style.display="none";
+  // ensure actions tab is visible
+  const actionsTab=document.querySelector(".tab");
+  if(actionsTab) actionsTab.click();
+  // make sure tab-cards and ctrl are visible (not hidden by other logic)
+  const cards=$("tab-cards"); if(cards) cards.style.display="";
+  const sh=$("tab-sh"); if(sh) sh.style.display="";
   toast("Modo apresentação — clique em '✕ Sair' para voltar ao modo edição","inf",4000);
 };
 window.exitPresent=()=>{
@@ -2918,30 +2929,121 @@ window.exportExcel=()=>{
 
 // ── Print report ─────────────────────────────────────────────────────────────
 window.printReport=()=>{
-  // Set print date
-  const dateEl=document.getElementById("print-date");
-  if(dateEl) dateEl.textContent="Impresso em "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
+  // Build dedicated print container with actions sorted alphabetically
+  const ativos=allPlanos.filter(p=>!p.arquivada)
+    .sort((a,b)=>(a.titulo||"").localeCompare(b.titulo||"","pt-BR"));
 
-  // Expand all PDCA bodies before printing
-  document.querySelectorAll(".pdca-body").forEach(b=>b.classList.add("open"));
+  const statusLabel={nao_iniciado:"Não iniciado",em_andamento:"Em andamento",
+    concluido:"Concluído",atrasado:"Atrasado",cancelado:"Cancelado"};
+  const prazoLabel={curto:"Curto prazo",medio:"Médio prazo",longo:"Longo prazo"};
+  const natLabel={oportunidade:"Oportunidade",dor:"Dor",
+    fluxo:"Falha de Fluxo",comunicacao:"Falha de Comunicação"};
 
-  // Switch to actions tab if not already there
-  const actTab=document.querySelector(".tab.act");
-  if(actTab&&!actTab.textContent.includes("Ações")){
-    document.querySelector(".tab")?.click();
+  const rows=ativos.map((p,i)=>{
+    const eixo=allEixos.find(e=>e.id===p.eixo)||{cor:"#9E9E9E",nome:"Sem Eixo"};
+    const krs=getKRsFromPlano(p);
+    const avg=krs.length?Math.round(krs.reduce((s,k)=>s+(k.progress||0),0)/krs.length):0;
+    const nats=(p.natureza||[]).map(n=>natLabel[n]||n).join(", ");
+    const krsHtml=krs.map(kr=>`
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+        <span style="font-size:9px;font-weight:800;color:${eixo.cor};background:${eixo.cor}18;padding:1px 5px;border-radius:3px;flex-shrink:0">KR ${kr.num}</span>
+        <span style="font-size:10px;flex:1">${kr.titulo||""}</span>
+        <span style="font-size:10px;color:#6B7BA4;flex-shrink:0">${kr.meta||""}</span>
+        <span style="font-size:10px;font-weight:700;color:${eixo.cor};flex-shrink:0;min-width:28px;text-align:right">${kr.progress||0}%</span>
+      </div>
+      <div style="height:3px;background:#E8EDF5;border-radius:2px;margin-bottom:5px;overflow:hidden">
+        <div style="height:100%;width:${kr.progress||0}%;background:${eixo.cor};border-radius:2px"></div>
+      </div>`).join("");
+
+    const statusColor={nao_iniciado:"#6B7BA4",em_andamento:"#F5A623",
+      concluido:"#3AAA35",atrasado:"#E53935",cancelado:"#9E9E9E"};
+    const statusBg={nao_iniciado:"#F0F4FA",em_andamento:"#FDF3E3",
+      concluido:"#E8F7E7",atrasado:"#FAEAEA",cancelado:"#F5F5F5"};
+    const st=p.status||"nao_iniciado";
+
+    return `
+    <div style="border:1px solid #D8E2F0;border-left:4px solid ${p.borderColor||eixo.cor};
+      border-radius:8px;padding:14px 16px;margin-bottom:10px;break-inside:avoid;page-break-inside:avoid;background:#fff">
+
+      <!-- Header row -->
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px">
+        <div style="width:28px;height:28px;border-radius:6px;background:${eixo.cor}18;
+          border:1.5px solid ${eixo.cor};display:flex;align-items:center;justify-content:center;
+          font-family:Montserrat,sans-serif;font-size:11px;font-weight:900;color:${eixo.cor};flex-shrink:0">
+          ${String(i+1).padStart(2,"0")}
+        </div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+            <span style="background:${eixo.cor}18;color:${eixo.cor};padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700">${eixo.nome}</span>
+            ${nats?`<span style="background:#F0F4FA;color:#6B7BA4;padding:1px 7px;border-radius:20px;font-size:9px;font-weight:600">${nats}</span>`:""}
+            <span style="background:${statusBg[st]};color:${statusColor[st]};padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700">${statusLabel[st]}</span>
+            ${p.prazo?`<span style="background:#F0F4FA;color:#6B7BA4;padding:1px 7px;border-radius:20px;font-size:9px">${prazoLabel[p.prazo]||p.prazo}</span>`:""}
+            ${p.quickWin?`<span style="background:#FFF8E1;color:#C8970A;padding:1px 7px;border-radius:20px;font-size:9px;font-weight:700">⚡ Quick Win</span>`:""}
+          </div>
+          <div style="font-size:13px;font-weight:700;color:#0D1B3E;margin-bottom:3px;line-height:1.3">${p.titulo||"Sem título"}</div>
+          <div style="font-size:10px;color:#4A5568;line-height:1.5">${p.objetivo||""}</div>
+        </div>
+        <div style="flex-shrink:0;text-align:right;min-width:60px">
+          <div style="font-family:Montserrat,sans-serif;font-size:20px;font-weight:900;color:${eixo.cor}">${avg}%</div>
+          <div style="font-size:9px;color:#6B7BA4">progresso</div>
+          <div style="height:4px;background:#E8EDF5;border-radius:2px;margin-top:4px;overflow:hidden">
+            <div style="height:100%;width:${avg}%;background:${eixo.cor};border-radius:2px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KRs -->
+      ${krs.length?`<div style="border-top:1px solid #EDF2F7;padding-top:8px;margin-top:4px">${krsHtml}</div>`:""}
+
+      <!-- Meta info row -->
+      <div style="display:flex;gap:14px;margin-top:8px;padding-top:6px;border-top:1px solid #EDF2F7;flex-wrap:wrap">
+        ${p.responsavel?`<span style="font-size:9px;color:#6B7BA4">👤 <strong>${p.responsavel}</strong></span>`:""}
+        ${p.observador?`<span style="font-size:9px;color:#6B7BA4">👁 <strong>${p.observador}</strong></span>`:""}
+        ${p.inicio||p.fim?`<span style="font-size:9px;color:#6B7BA4">📅 ${p.inicio||""}${p.fim?" → "+p.fim:""}</span>`:""}
+      </div>
+    </div>`;
+  }).join("");
+
+  // Inject into print container
+  let printEl=document.getElementById("print-content");
+  if(!printEl){
+    printEl=document.createElement("div");
+    printEl.id="print-content";
+    document.body.appendChild(printEl);
   }
+  const ativos2=allPlanos.filter(p=>!p.arquivada);
+  const avg2=ativos2.length?Math.round(
+    ativos2.reduce((s,p)=>{
+      const krs=getKRsFromPlano(p);
+      return s+(krs.length?Math.round(krs.reduce((ss,k)=>ss+(k.progress||0),0)/krs.length):0);
+    },0)/ativos2.length
+  ):0;
+  printEl.innerHTML=`
+    <div id="print-report-header" style="display:block;background:#003087;color:#fff;
+      padding:16px 20px;border-radius:8px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#F5C200;margin-bottom:4px">
+            Complexo Pequeno Príncipe — HPP · FPP · IPPP
+          </div>
+          <div style="font-size:18px;font-weight:700;margin-bottom:2px">Plano de Ação 2026–2027</div>
+          <div style="font-size:11px;opacity:.7">Comissão de Integração · Ordenado alfabeticamente</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:28px;font-weight:900">${avg2}%</div>
+          <div style="font-size:10px;opacity:.7">progresso geral</div>
+          <div style="font-size:11px;margin-top:4px">${ativos2.length} ações ativas</div>
+        </div>
+      </div>
+    </div>
+  `+rows;
 
-  // Show all cards (clear filters)
-  showAll();
+  // Set date
+  const dateEl=document.getElementById("print-date");
+  if(dateEl) dateEl.textContent="Impresso em "+
+    new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
 
-  // Print
-  setTimeout(()=>{
-    window.print();
-    // collapse PDCA bodies again after print dialog
-    setTimeout(()=>{
-      document.querySelectorAll(".pdca-body").forEach(b=>b.classList.remove("open"));
-    },1000);
-  },300);
+  setTimeout(()=>{ window.print(); },300);
 };
 
 window.exportBackup=()=>{
